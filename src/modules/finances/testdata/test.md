@@ -1,0 +1,51 @@
+## 2026
+
+### 2026-03
+- income:
+	- wynagrodzenie: b2b 1000, 
+	- freelance: 300
+- taxes:
+	- PIT: 100
+	- ZUS: 200
+- savings:
+	- ETF: 100
+	- lokata: 200
+- expenses:
+	- mieszkanie: 100
+	- jedzenie & rev: główne 100, inne 50
+	- transport: bilety 20, inne 30
+
+### 2026-04
+- income:
+	- b2b: 1000
+	- inne: 300
+- taxes:
+	- PIT: 200
+	- ZUS: 100
+- savings:
+	- ETF: 300
+- expenses:
+	- mieszkanie: 100
+	- jedzenie & rev: 150
+	- transport: 
+		- bilety: 30
+		- bilety2: 20
+
+## Categories
+
+```
+**must:**
+- mieszkanie:     #1f77b4
+- jedzenie & rev: #72b0dc
+
+**wants:**
+- transport:      #55d4e0
+
+**inne:**
+- inne:           #7f7f7f
+- other:          #b0b0b0
+
+**special:**
+- savings:        #2ca02c
+- net income:     #2ca02c
+```
