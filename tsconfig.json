@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
 		"baseUrl": "src",
+		"skipLibCheck": true,
 		"inlineSourceMap": true,
 		"inlineSources": true,
 		"module": "ESNext",
@@ -19,15 +20,13 @@
 		"useUnknownInCatchVariables": true,
 		"lib": [
 			"DOM",
-			"ES5",
-			"ES6",
-			"ES7"
+			"ESNext"
+		],
+		"types": [
+			"bun"
 		]
 	},
 	"include": [
 		"src/**/*.ts"
-	],
-	"exclude": [
-		"**/*.test.ts"
 	]
 }

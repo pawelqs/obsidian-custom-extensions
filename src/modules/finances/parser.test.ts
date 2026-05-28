@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { parseCategories, parseMonths } from './parser';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-
-const testData = readFileSync(resolve(__dirname, './testdata/test.md'), 'utf-8');
+import testData from './testdata/test.txt';
 
 const expectedConfig = {
 	colorsMap: {
