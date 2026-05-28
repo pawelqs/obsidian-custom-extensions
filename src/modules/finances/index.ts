@@ -6,6 +6,11 @@ export class FinancesModule {
 	constructor(private app: App) {}
 
 	register(plugin: Plugin): void {
+		const parseChunkConfig = (source: string) => {
+			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
+			return { height: heightStr ? parseInt(heightStr, 10) : 600 };
+		};
+
 		const readAndParse = async (ctx: MarkdownPostProcessorContext) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
@@ -15,45 +20,41 @@ export class FinancesModule {
 			return { config, months };
 		};
 
-		const setupRerender = (el: HTMLElement, ctx: MarkdownPostProcessorContext, renderer: (el: HTMLElement, months: any[], config: any) => void) => {
+		type Renderer = (el: HTMLElement, months: any[], config: any, height?: number) => void;
+		const setupRerender = (
+			el: HTMLElement,
+			ctx: MarkdownPostProcessorContext,
+			source: string,
+			renderer: Renderer
+		) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return;
-
-			const watched = (el as any).__financeWatched;
-			if (watched) return;
-
+			if ((el as any).__financeWatched) return;
 			(el as any).__financeWatched = true;
 
-			plugin.registerEvent(
-				this.app.vault.on('modify', async (modifiedFile) => {
-					if (modifiedFile.path === file.path) {
-						const data = await readAndParse(ctx);
-						if (!data) return;
-						el.empty();
-						renderer(el, data.months, data.config);
-					}
-				})
-			);
+			const onModify = async (modifiedFile: TFile) => {
+				if (modifiedFile.path !== file.path) return;
+				const data = await readAndParse(ctx);
+				if (!data) return;
+				el.empty();
+				const chunkConfig = parseChunkConfig(source);
+				renderer(el, data.months, data.config, chunkConfig.height);
+			};
+
+			plugin.registerEvent(this.app.vault.on('modify', onModify));
 		};
 
-		plugin.registerMarkdownCodeBlockProcessor(
-			'cext-finances-chart',
-			async (source, el, ctx) => {
+		const registerChartBlock = (blockName: string, renderer: Renderer) => {
+			plugin.registerMarkdownCodeBlockProcessor(blockName, async (source, el, ctx) => {
 				const data = await readAndParse(ctx);
 				if (!data) return;
-				renderChart(el, data.months, data.config);
-				setupRerender(el, ctx, renderChart);
-			}
-		);
+				const h = parseChunkConfig(source).height;
+				renderer(el, data.months, data.config, h);
+				setupRerender(el, ctx, source, renderer);
+			});
+		};
 
-		plugin.registerMarkdownCodeBlockProcessor(
-			'cext-finances-table',
-			async (source, el, ctx) => {
-				const data = await readAndParse(ctx);
-				if (!data) return;
-				renderTable(el, data.months, data.config);
-				setupRerender(el, ctx, renderTable);
-			}
-		);
+		registerChartBlock('cext-finances-chart', renderChart);
+		registerChartBlock('cext-finances-table', renderTable);
 	}
 }

@@ -86,7 +86,7 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Financ
 	}
 }
 
-export function renderChart(el: HTMLElement, months: MonthData[], config: FinancesConfig) {
+export function renderChart(el: HTMLElement, months: MonthData[], config: FinancesConfig, height: number = 600) {
 	const chartInstance = (el as any).__chartInstance;
 	if (chartInstance) {
 		chartInstance.destroy();
@@ -100,7 +100,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Financ
 	const canvas = el.createEl('canvas');
 	const container = el.createEl('div');
 	container.style.position = 'relative';
-	container.style.height = '600px';
+	container.style.height = `${height}px`;
 	container.style.width = '100%';
 	container.appendChild(canvas);
 
