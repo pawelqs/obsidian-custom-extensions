@@ -169,76 +169,50 @@ function renderLegend(config: FinancesConfig): HTMLElement {
 	const color = (key: string) => config.colorsMap[key] || '#aaaaaa';
 
 	const legendContainer = document.createElement('div');
-	legendContainer.style.display = 'flex';
-	legendContainer.style.gap = '40px';
-	legendContainer.style.marginBottom = '20px';
-	legendContainer.style.justifyContent = 'center';
-	legendContainer.style.flexWrap = 'wrap';
+	legendContainer.classList.add('cext-legend-container');
 
 	for (const group of config.groupOrder) {
-		const groupColumn = document.createElement('div');
-
-		const groupTitle = document.createElement('div');
-		groupTitle.style.fontWeight = 'bold';
-		groupTitle.style.marginBottom = '8px';
-		groupTitle.textContent = group;
-		groupColumn.appendChild(groupTitle);
-
 		const cats = config.groupCats[group] || [];
-		for (const cat of cats) {
-			const item = document.createElement('div');
-			item.style.display = 'flex';
-			item.style.alignItems = 'center';
-			item.style.gap = '8px';
-			item.style.fontSize = '12px';
-			item.style.marginBottom = '4px';
-
-			const box = document.createElement('div');
-			box.style.width = '12px';
-			box.style.height = '12px';
-			box.style.backgroundColor = color(cat);
-			box.style.border = '1px solid #ccc';
-			item.appendChild(box);
-
-			const label = document.createElement('span');
-			label.textContent = cat;
-			item.appendChild(label);
-
-			groupColumn.appendChild(item);
-		}
-
-		legendContainer.appendChild(groupColumn);
+		const items = cats.map((cat) => ({ label: cat, color: color(cat) }));
+		legendContainer.appendChild(createLegendSection(items, group));
 	}
 
-	const otherColumn = document.createElement('div');
-	const otherTitle = document.createElement('div');
-	otherTitle.style.fontWeight = 'bold';
-	otherTitle.style.marginBottom = '8px';
-	otherTitle.textContent = 'other';
-	otherColumn.appendChild(otherTitle);
+	const otherItems = ['other', 'savings', 'net income'].map((label) => ({
+		label,
+		color: color(label),
+	}));
+	legendContainer.appendChild(createLegendSection(otherItems, 'other'));
 
-	for (const label of ['other', 'savings', 'net income']) {
-		const item = document.createElement('div');
-		item.style.display = 'flex';
-		item.style.alignItems = 'center';
-		item.style.gap = '8px';
-		item.style.fontSize = '12px';
-		item.style.marginBottom = '4px';
-
-		const box = document.createElement('div');
-		box.style.width = '12px';
-		box.style.height = '12px';
-		box.style.backgroundColor = color(label);
-		box.style.border = '1px solid #ccc';
-		item.appendChild(box);
-
-		const span = document.createElement('span');
-		span.textContent = label;
-		item.appendChild(span);
-
-		otherColumn.appendChild(item);
-	}
-
-	legendContainer.appendChild(otherColumn);
 	return legendContainer;
+}
+
+function createLegendItem(label: string, colorValue: string): HTMLElement {
+	const item = document.createElement('div');
+	item.classList.add('cext-legend-item');
+
+	const box = document.createElement('div');
+	box.classList.add('cext-legend-item-box');
+	box.style.backgroundColor = colorValue;
+	item.appendChild(box);
+
+	const span = document.createElement('span');
+	span.textContent = label;
+	item.appendChild(span);
+
+	return item;
+}
+
+function createLegendSection(items: Array<{ label: string; color: string }>, title: string): HTMLElement {
+	const section = document.createElement('div');
+
+	const titleEl = document.createElement('div');
+	titleEl.classList.add('cext-legend-section-title');
+	titleEl.textContent = title;
+	section.appendChild(titleEl);
+
+	for (const item of items) {
+		section.appendChild(createLegendItem(item.label, item.color));
+	}
+
+	return section;
 }

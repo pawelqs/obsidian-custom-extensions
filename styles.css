@@ -1,8 +1,26 @@
-/*
+.cext-legend-container {
+	display: flex;
+	gap: 40px;
+	margin-bottom: 20px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.cext-legend-section-title {
+	font-weight: bold;
+	margin-bottom: 8px;
+}
 
-If your plugin does not need CSS, delete this file.
+.cext-legend-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	margin-bottom: 4px;
+}
 
-*/
+.cext-legend-item-box {
+	width: 12px;
+	height: 12px;
+	border: 1px solid #ccc;
+}
