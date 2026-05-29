@@ -55,10 +55,10 @@ export function aggregateBody(dailyData: DailyData[], metrics: string[]): BodyAg
 	return { dates, series };
 }
 
-function weekStart(dateStr: string): string {
-	const d = new Date(dateStr + 'T00:00:00');
-	const dow = d.getDay();
+export function weekStart(dateStr: string): string {
+	const d = new Date(dateStr + 'T00:00:00Z');
+	const dow = d.getUTCDay();
 	const diff = dow === 0 ? -6 : 1 - dow;
-	d.setDate(d.getDate() + diff);
+	d.setUTCDate(d.getUTCDate() + diff);
 	return d.toISOString().slice(0, 10);
 }
