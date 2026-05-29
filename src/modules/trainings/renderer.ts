@@ -120,9 +120,8 @@ function makeColorResolver(colorsMap: Record<string, string>): (cat: string) => 
 
 function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement {
 	const container = el.createEl('div');
-	container.style.position = 'relative';
+	container.classList.add('cext-chart-container');
 	container.style.height = `${height}px`;
-	container.style.width = '100%';
 	return container.createEl('canvas');
 }
 

@@ -24,3 +24,28 @@
 	height: 12px;
 	border: 1px solid #ccc;
 }
+
+.cext-chart-container {
+	position: relative;
+	width: 100%;
+	/* height is set inline because it's dynamic (per-block config) */
+}
+
+.cext-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.cext-table th,
+.cext-table td {
+	border: 1px solid #ddd;
+	padding: 8px;
+}
+
+.cext-table th {
+	text-align: left;
+}
+
+.cext-table tr.cext-table-total td {
+	font-weight: bold;
+}

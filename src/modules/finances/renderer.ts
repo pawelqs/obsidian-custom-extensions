@@ -7,8 +7,7 @@ const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigit
 
 export function renderTable(el: HTMLElement, months: MonthData[], config: FinancesConfig) {
 	const table = el.createEl('table');
-	table.style.width = '100%';
-	table.style.borderCollapse = 'collapse';
+	table.classList.add('cext-table');
 
 	const headers = [
 		'Miesiąc',
@@ -23,9 +22,6 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Financ
 	const headerRow = table.createEl('tr');
 	for (const h of headers) {
 		const th = headerRow.createEl('th');
-		th.style.border = '1px solid #ddd';
-		th.style.padding = '8px';
-		th.style.textAlign = 'left';
 		th.textContent = h;
 	}
 
@@ -48,13 +44,12 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Financ
 
 		for (const cell of cells) {
 			const td = row.createEl('td');
-			td.style.border = '1px solid #ddd';
-			td.style.padding = '8px';
 			td.textContent = cell;
 		}
 	}
 
 	const totalRow = table.createEl('tr');
+	totalRow.classList.add('cext-table-total');
 	const totI = months.reduce((s, m) => s + m.income, 0);
 	const totT = months.reduce((s, m) => s + m.taxes, 0);
 	const totS = months.reduce((s, m) => s + m.savings, 0);
@@ -79,9 +74,6 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Financ
 
 	for (const total of totals) {
 		const td = totalRow.createEl('td');
-		td.style.border = '1px solid #ddd';
-		td.style.padding = '8px';
-		td.style.fontWeight = 'bold';
 		td.textContent = total;
 	}
 }
@@ -99,9 +91,8 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Financ
 
 	const canvas = el.createEl('canvas');
 	const container = el.createEl('div');
-	container.style.position = 'relative';
+	container.classList.add('cext-chart-container');
 	container.style.height = `${height}px`;
-	container.style.width = '100%';
 	container.appendChild(canvas);
 
 	const labels = months.map((m) => m.label);
