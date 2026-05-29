@@ -17,29 +17,33 @@ Reload in Obsidian: Settings → Community Plugins → Disable/Enable cext, or C
 
 ## Architecture
 
-**Module Structure**:
+**Module structure** (each module follows the same shape):
 ```
 src/
-  main.ts                  # Plugin entry, initializes FinancesModule
-  modules/finances/
-    types.ts              # MonthData, FinancesConfig interfaces
-    parser.ts             # Parse categories + monthly data from markdown
-    renderer.ts           # Render HTML table + Chart.js visualization
-    index.ts              # FinancesModule: registers code block processors
-    parser.test.ts        # Tests (bun:test)
-    test/data/test.md     # Test data
+  main.ts                       # Plugin entry, registers all modules
+  modules/<module>/
+    types.ts                    # Domain interfaces
+    parser.ts                   # Markdown → domain types
+    aggregator.ts               # (trainings) Domain → chart-ready aggregates
+    renderer.ts                 # Aggregates → Chart.js / HTML
+    index.ts                    # Module class: registers code block processors + file watcher
+    parser.test.ts              # Tests (bun:test)
+    testdata/test.txt           # Test data, imported as a plain string
 ```
 
-**Key Flow**:
-1. Two code block processors registered: `cext-finances-chart`, `cext-finances-table`
-2. Both read & parse data from the file containing the block
-3. `parser.ts`: Extract categories (## Categories section), monthly data (### YYYY-MM blocks)
-4. `renderer.ts`: Create table (Month | Income | Taxes | Savings | Expenses | Groups | Balance) + stacked bar chart
-5. File watcher triggers re-render on vault changes (uses `__financeWatched` flag to prevent duplicate listeners)
+**Modules**:
+- **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` (with `**group:**` markers) and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
+- **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
 
-**Parser Detail**: Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
+**Code block naming**: `cext-<module>-<view>` — e.g. `cext-finances-chart`, `cext-finances-table`, `cext-trainings-chart`, `cext-trainings-body`. The `cext-` prefix scopes to this plugin and avoids collisions with other plugins' processors.
 
-**Chart Detail**: Destroys previous Chart.js instance before re-creating to avoid memory leaks. Stores instance on element as `__chartInstance`.
+**Key flow**:
+1. Module's `index.ts` registers code block processors with `plugin.registerMarkdownCodeBlockProcessor(name, handler)`.
+2. Handler reads the containing file via `app.vault.read`, parses it, hands data to renderer.
+3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched`) prevents duplicate listeners.
+4. Chart.js instance stored on element as `__chartInstance` and destroyed before re-create (avoids memory leak).
+
+**Finances parser detail**: Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
 
 ## Data Format
 
@@ -79,7 +83,9 @@ Strict mode enabled. `baseUrl: src` allows clean imports. All undefined cases ha
 
 **Modify chart**: Edit `renderer.ts` `renderChart()` — change chart type, stack options, line styling.
 
-**Add code block processor**: Register in `index.ts` `register()` with `plugin.registerMarkdownCodeBlockProcessor()`.
+**Add code block processor**: Register in `index.ts` `register()` with `plugin.registerMarkdownCodeBlockProcessor('cext-<module>-<view>', ...)`. Follow the naming convention above.
+
+**Add a new module**: Mirror `src/modules/finances/` or `src/modules/trainings/` — same file shape. Register the module class in `src/main.ts` `onload()`.
 
 ## Conventions
 
@@ -104,6 +110,9 @@ Don't carry data that can be derived from another field. Example: a `categories:
 
 ### Naming
 Prefer descriptive names that say what the value *is*, not how it's built. `dailyData: DailyData[]` reads better than `days: DayData[]`; `aggregateTrainings` reads better than `aggregateByWeek`. The cost of a rename is one find/replace; the cost of a cryptic name compounds with every reader.
+
+### Styling
+Static CSS goes in `styles.css` under `.cext-*` prefixed classes (e.g. `.cext-chart-container`, `.cext-table`, `.cext-legend-*`); apply via `el.classList.add(...)`. Inline styles only for dynamic values that change per-render (e.g. `container.style.height = '${height}px'` where height comes from the code block config). Don't sprinkle inline `border`/`padding`/`fontWeight` — move it to a class.
 
 ## Testing
 
