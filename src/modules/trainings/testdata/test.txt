@@ -21,3 +21,6 @@
   body: 72 kg, 19 PBF
   training: mobility 30m, handstand 15m, strength 1h
     - ćwiczenie 1 / : 15, 8x15, 6x17.5, 6x15
+- 2026-04-22:
+  training: cardio 30m
+  training: strength 30m

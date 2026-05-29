@@ -44,7 +44,7 @@ export function parseDailyData(content: string, _config: TrainingsConfig): Daily
 		if (line.startsWith('## ')) break;
 
 		// Date line: `- YYYY-MM-DD [dayLabel][: inline content]`
-		const dateMatch = line.match(/^-\s+(\d{4}-\d{2}-\d{2})(?:\s+(\S+))?(?::\s*(.+))?$/);
+		const dateMatch = line.match(/^-\s+(\d{4}-\d{2}-\d{2})(?:\s+(\S+))?(?::\s*(.*))?$/);
 		if (dateMatch?.[1]) {
 			current = {
 				date: dateMatch[1],

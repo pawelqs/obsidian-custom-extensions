@@ -13,6 +13,15 @@ const expectedConfig = {
 
 const expectedDailyData = [
 	{
+		date: '2026-04-22',
+		dayLabel: undefined,
+		body: [],
+		trainings: [
+			{ category: 'cardio', hours: 0.5 },
+			{ category: 'strength', hours: 0.5 },
+		],
+	},
+	{
 		date: '2026-04-23',
 		dayLabel: 'sb',
 		body: [
