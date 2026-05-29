@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Start
 
-Obsidian plugin (TypeScript, bun/esbuild) with Finances Module: parses markdown financial data → renders HTML table + Chart.js stacked bar chart.
+Obsidian plugin (TypeScript, bun/esbuild) with two modules: **Finances** (markdown finance data → HTML table + Chart.js stacked bar) and **Trainings** (markdown training/body data → stacked bar per-week + line chart for body metrics).
 
 ```bash
 bun run dev      # Watch mode
@@ -67,15 +67,6 @@ src/
     - paliwo: 50
 ```
 
-## Testing
-
-```bash
-bun test src/modules/finances/parser.test.ts      # Specific test
-bun test --watch                                   # Watch mode
-```
-
-Uses bun:test (built-in). Test data in `test/data/test.md`. Tests cover `parseCategories()` and `parseMonths()` logic.
-
 ## TypeScript
 
 Strict mode enabled. `baseUrl: src` allows clean imports. All undefined cases have proper guards.
@@ -89,6 +80,45 @@ Strict mode enabled. `baseUrl: src` allows clean imports. All undefined cases ha
 **Modify chart**: Edit `renderer.ts` `renderChart()` — change chart type, stack options, line styling.
 
 **Add code block processor**: Register in `index.ts` `register()` with `plugin.registerMarkdownCodeBlockProcessor()`.
+
+## Conventions
+
+### Function ordering (within a file)
+Consts first, then exported functions, helpers below — readers see the public API first. When a helper is only called from one function, put it directly under that function. Use `function` declarations (not `const f = () => ...`) so hoisting handles forward references. Module-level constants used by multiple exports stay near the top of the file; per-function helpers go below.
+
+### Pure functions over mutation
+Prefer functions that take input and return a value over functions that mutate their arguments by reference. Example: `parseInline(content) → { body, trainings }` instead of `parseInline(content, day)` mutating `day`. Pure functions are easier to test (no need for setup helpers like `emptyDay()`), easier to read (no aliasing surprises), and parallel to sibling helpers (`parseBodyItems`, `parseTrainingItems`) already return values.
+
+Exception: when the imperative version is genuinely clearer (e.g. nested aggregation with a local accumulator), keep it — but isolate the mutation in a small scope.
+
+### Separation of data shaping vs rendering
+Rendering functions should be thin Chart.js layers. Extract data transforms into a sibling file (e.g. `aggregator.ts`) so they're testable without a canvas and the render call reads top-to-bottom as "take aggregate → hand to Chart.js."
+
+### Comments and docs
+- Default to no comments. Only add when *why* is non-obvious.
+- For struct fields, pick *one* style consistently: brief description above the interface, OR trailing `// comment` per field. Not both, not per-field JSDoc above each line (visually noisy).
+- One-line `/** */` above an exported function is fine when it adds something the name doesn't.
+
+### Avoiding redundant fields
+Don't carry data that can be derived from another field. Example: a `categories: string[]` alongside `colorsMap: Record<string, string>` is redundant — `Object.keys(colorsMap)` preserves insertion order and gives the same list. Drop the duplicate.
+
+### Naming
+Prefer descriptive names that say what the value *is*, not how it's built. `dailyData: DailyData[]` reads better than `days: DayData[]`; `aggregateTrainings` reads better than `aggregateByWeek`. The cost of a rename is one find/replace; the cost of a cryptic name compounds with every reader.
+
+## Testing
+
+```bash
+bun test src/modules/<module>/parser.test.ts   # specific file
+bun test --watch                                # watch mode
+```
+
+Uses `bun:test` (built-in). Test data lives in `src/modules/<module>/testdata/` and is imported as a plain string (`import testData from './testdata/test.txt'`).
+
+### Conventions
+- One `describe` block per function/unit under test, named after the function (`describe('parseBodyItems', ...)`)— flat structure, no nested wrapper describes for tiny test files.
+- Keep test data realistic — mirror the actual markdown format users would write, including tricky cases (inline + multi-line, Polish decimal commas, exercise lists after `:`).
+- Extract long input strings to `const input = '...'` before the `expect()` — avoids long lines.
+- Test pure functions directly; mutating functions force test setup boilerplate (another reason to prefer pure).
 
 ## Troubleshooting
 

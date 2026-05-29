@@ -1,0 +1,23 @@
+## Wykresy
+
+```cext-trainings-chart
+```
+
+## Kategorie
+
+```
+- strength:    #e74c3c
+- mobility:    #9b59b6
+- handstand:   #808000
+- cardio:      #43a047
+```
+
+## Data
+
+- 2026-04-26: body: 70 kg, 18 PBF, training: strength 1h, mobility 30m
+- 2026-04-24: body: 70 kg, training: mobility 1h, strength 1h
+  - pompki 10,12,12,10 - podciąganie 5,5,6
+- 2026-04-23 sb
+  body: 72 kg, 19 PBF
+  training: mobility 30m, handstand 15m, strength 1h
+    - ćwiczenie 1 / : 15, 8x15, 6x17.5, 6x15
