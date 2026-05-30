@@ -43,9 +43,9 @@
 
 **inne:**
 - inne:           #7f7f7f
-- other:          #b0b0b0
 
 **special:**
 - savings:        #2ca02c
 - net income:     #2ca02c
+- other:          #b0b0b0
 ```

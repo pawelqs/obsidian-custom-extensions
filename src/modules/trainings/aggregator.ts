@@ -2,7 +2,8 @@
  * Pure data transforms: domain `DailyData[]` → chart-ready aggregates.
  * No DOM / Chart.js — safe to unit-test without a canvas.
  */
-import { DailyData, TrainingsConfig } from './types';
+import { DailyData } from './types';
+import { CategoriesConfig } from '../../shared/parseCategories';
 
 export interface TrainingAggregate {
 	weeks: string[];                                              // sorted Monday-of-week dates (YYYY-MM-DD), x-axis labels
@@ -16,7 +17,7 @@ export interface BodyAggregate {
 }
 
 /** Aggregate training hours by week and category. */
-export function aggregateTrainings(dailyData: DailyData[], config: TrainingsConfig): TrainingAggregate {
+export function aggregateTrainings(dailyData: DailyData[], config: CategoriesConfig): TrainingAggregate {
 	const hoursByWeekCategory: Record<string, Record<string, number>> = {};
 	for (const day of dailyData) {
 		const w = weekStart(day.date);

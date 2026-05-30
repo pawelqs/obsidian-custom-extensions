@@ -1,35 +1,7 @@
-import { DailyData, TrainingsConfig, TrainingItem, BodyMeasurement } from './types';
+import { DailyData, TrainingItem, BodyMeasurement } from './types';
+import { CategoriesConfig } from '../../shared/parseCategories';
 
-export function parseCategories(content: string): TrainingsConfig {
-	const lines = content.split('\n');
-	const colorsMap: Record<string, string> = {};
-	let inSection = false;
-	let inFence = false;
-
-	for (const line of lines) {
-		if (line.startsWith('## Kategorie')) {
-			inSection = true;
-			continue;
-		}
-		if (!inSection) continue;
-		if (line.startsWith('## ')) break;
-
-		if (line.trim() === '```') {
-			inFence = !inFence;
-			continue;
-		}
-		if (!line.trim()) continue;
-
-		const m = line.match(/^-\s+(.+?):\s*(.+)$/);
-		if (m?.[1] && m[2]) {
-			colorsMap[m[1].trim()] = m[2].trim();
-		}
-	}
-
-	return { colorsMap };
-}
-
-export function parseDailyData(content: string, _config: TrainingsConfig): DailyData[] {
+export function parseDailyData(content: string, _config: CategoriesConfig): DailyData[] {
 	const lines = content.split('\n');
 	const dailyData: DailyData[] = [];
 	let current: DailyData | null = null;

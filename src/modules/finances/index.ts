@@ -1,5 +1,6 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
-import { parseCategories, parseMonths } from './parser';
+import { filterCategories, parseMonths } from './parser';
+import { parseCategories } from '../../shared/parseCategories';
 import { renderChart, renderTable } from './renderer';
 
 export class FinancesModule {
@@ -15,7 +16,7 @@ export class FinancesModule {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
 			const content = await this.app.vault.read(file);
-			const config = parseCategories(content);
+			const config = filterCategories(parseCategories(content));
 			const months = parseMonths(content, config);
 			return { config, months };
 		};

@@ -1,4 +1,5 @@
-import { MonthData, FinancesConfig } from './types';
+import { MonthData } from './types';
+import { CategoriesConfig } from '../../shared/parseCategories';
 
 function parseValue(str: string): number | null {
 	str = str.trim();
@@ -11,75 +12,19 @@ function parseValue(str: string): number | null {
 	}, 0);
 }
 
-export function parseCategories(content: string): FinancesConfig {
-	const lines = content.split('\n');
-	const colorsMap: Record<string, string> = {};
-	const groupCats: Record<string, string[]> = {};
-	const groupOrder: string[] = [];
-	let inCategories = false;
-	let inFence = false;
-	let currentGroup: string | null = null;
+const SPECIAL_GROUP = 'special';
 
-	const SPECIAL_KEYS = new Set(['savings', 'net income', 'other']);
-
-	for (const line of lines) {
-		if (line.startsWith('## Categories')) {
-			inCategories = true;
-			continue;
-		}
-
-		if (inCategories) {
-			if (line.startsWith('## ') && !line.startsWith('## Categories')) break;
-
-			if (line.trim() === '```') {
-				inFence = !inFence;
-				continue;
-			}
-
-			if (!inFence && !line.trim()) continue;
-
-			const groupMatch = line.match(/^\*\*(.+?):\*\*/);
-			if (groupMatch && groupMatch[1]) {
-				currentGroup = groupMatch[1].trim();
-				if (!groupCats[currentGroup]) {
-					groupCats[currentGroup] = [];
-					groupOrder.push(currentGroup);
-				}
-				continue;
-			}
-
-			const catMatch = line.match(/^-\s+(.+?)(?::\s*(.+))?$/);
-			if (catMatch && catMatch[1]) {
-				const cat = catMatch[1].trim();
-				if (catMatch[2]) {
-					colorsMap[cat] = catMatch[2].trim();
-				}
-				if (currentGroup && !SPECIAL_KEYS.has(cat)) {
-					const group = groupCats[currentGroup];
-					if (group && !group.includes(cat)) {
-						group.push(cat);
-					}
-				}
-			}
-		}
-	}
-
-	const cats = groupOrder
-		.filter((g) => g !== 'special')
-		.flatMap((g) => groupCats[g] || []);
-
-	// Remove special group from groupCats
-	delete groupCats['special'];
-
-	return {
-		colorsMap,
-		groupCats,
-		groupOrder: groupOrder.filter((g) => g !== 'special'),
-		cats,
-	};
+// Categories in the `**special:**` group (`savings`, `net income`, `other`) are
+// rendered as their own chart datasets — see renderer.ts. Drop the group from
+// `groupCats`/`cats` so they aren't drawn twice; colors are still kept.
+export function filterCategories(config: CategoriesConfig): CategoriesConfig {
+	const groupOrder = config.groupOrder.filter((g) => g !== SPECIAL_GROUP);
+	const groupCats = Object.fromEntries(groupOrder.map((g) => [g, config.groupCats[g] || []]));
+	const cats = groupOrder.flatMap((g) => groupCats[g] || []);
+	return { colorsMap: config.colorsMap, groupCats, groupOrder, cats };
 }
 
-export function parseMonths(content: string, config: FinancesConfig): MonthData[] {
+export function parseMonths(content: string, config: CategoriesConfig): MonthData[] {
 	const lines = content.split('\n');
 	const months: MonthData[] = [];
 	let current: MonthData | null = null;                                     // Aktualnie parsowany miesiąc

@@ -7,10 +7,3 @@ export interface MonthData {
 	expenses: number;
 	cats: Record<string, number>;
 }
-
-export interface FinancesConfig {
-	colorsMap: Record<string, string>;
-	groupCats: Record<string, string[]>;
-	groupOrder: string[];
-	cats: string[];
-}

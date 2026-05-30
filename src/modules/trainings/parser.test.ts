@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { parseCategories, parseDailyData, parseBodyItems, parseTrainingItems, parseInline } from './parser';
+import { parseDailyData, parseBodyItems, parseTrainingItems, parseInline } from './parser';
+import { parseCategories } from '../../shared/parseCategories';
 import testData from './testdata/test.txt';
 
 const expectedConfig = {
@@ -9,6 +10,9 @@ const expectedConfig = {
 		handstand: '#808000',
 		cardio: '#43a047',
 	},
+	groupCats: {},
+	groupOrder: [],
+	cats: [],
 };
 
 const expectedDailyData = [

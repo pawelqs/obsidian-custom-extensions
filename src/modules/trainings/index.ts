@@ -1,7 +1,8 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
-import { parseCategories, parseDailyData } from './parser';
+import { parseDailyData } from './parser';
 import { renderTrainingChart, renderBodyChart } from './renderer';
-import { DailyData, TrainingsConfig } from './types';
+import { DailyData } from './types';
+import { parseCategories, CategoriesConfig } from '../../shared/parseCategories';
 
 export class TrainingsModule {
 	constructor(private app: App) {}
@@ -28,7 +29,7 @@ export class TrainingsModule {
 		type Renderer = (
 			el: HTMLElement,
 			dailyData: DailyData[],
-			config: TrainingsConfig,
+			config: CategoriesConfig,
 			height?: number,
 			metrics?: string[]
 		) => void;

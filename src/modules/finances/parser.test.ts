@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { parseCategories, parseMonths } from './parser';
+import { filterCategories, parseMonths } from './parser';
+import { parseCategories } from '../../shared/parseCategories';
 import testData from './testdata/test.txt';
 
 const expectedConfig = {
@@ -54,13 +55,30 @@ const expectedMonths = [
 
 describe('Parser', () => {
 	it('should parse categories config correctly', () => {
-		const config = parseCategories(testData);
+		const config = filterCategories(parseCategories(testData));
 		expect(config).toEqual(expectedConfig);
 	});
 
 	it('should parse monthly data correctly', () => {
-		const config = parseCategories(testData);
+		const config = filterCategories(parseCategories(testData));
 		const months = parseMonths(testData, config);
 		expect(months).toEqual(expectedMonths);
+	});
+});
+
+describe('filterCategories', () => {
+	it('drops the special group from groupOrder/groupCats/cats and keeps colors', () => {
+		const input = {
+			colorsMap: { a: '#111', s: '#222' },
+			groupCats: { must: ['a'], special: ['s'] },
+			groupOrder: ['must', 'special'],
+			cats: ['a', 's'],
+		};
+		expect(filterCategories(input)).toEqual({
+			colorsMap: { a: '#111', s: '#222' },
+			groupCats: { must: ['a'] },
+			groupOrder: ['must'],
+			cats: ['a'],
+		});
 	});
 });

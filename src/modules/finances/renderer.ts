@@ -1,11 +1,12 @@
 import { Chart, registerables } from 'chart.js';
-import { MonthData, FinancesConfig } from './types';
+import { MonthData } from './types';
+import { CategoriesConfig } from '../../shared/parseCategories';
 
 Chart.register(...registerables);
 
 const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigits: 0 }) : '');
 
-export function renderTable(el: HTMLElement, months: MonthData[], config: FinancesConfig) {
+export function renderTable(el: HTMLElement, months: MonthData[], config: CategoriesConfig) {
 	const table = el.createEl('table');
 	table.classList.add('cext-table');
 
@@ -78,7 +79,7 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Financ
 	}
 }
 
-export function renderChart(el: HTMLElement, months: MonthData[], config: FinancesConfig, height: number = 600) {
+export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, height: number = 600) {
 	const chartInstance = (el as any).__chartInstance;
 	if (chartInstance) {
 		chartInstance.destroy();
@@ -156,7 +157,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Financ
 	(el as any).__chartInstance = newChart;
 }
 
-function renderLegend(config: FinancesConfig): HTMLElement {
+function renderLegend(config: CategoriesConfig): HTMLElement {
 	const color = (key: string) => config.colorsMap[key] || '#aaaaaa';
 
 	const legendContainer = document.createElement('div');

@@ -15,6 +15,3 @@ export interface DailyData {
 	trainings: TrainingItem[];
 }
 
-export interface TrainingsConfig {
-	colorsMap: Record<string, string>;
-}

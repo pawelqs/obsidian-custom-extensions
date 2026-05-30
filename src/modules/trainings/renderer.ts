@@ -1,5 +1,6 @@
 import { Chart, registerables } from 'chart.js';
-import { DailyData, TrainingsConfig } from './types';
+import { DailyData } from './types';
+import { CategoriesConfig } from '../../shared/parseCategories';
 import { aggregateTrainings, aggregateBody } from './aggregator';
 
 Chart.register(...registerables);
@@ -17,7 +18,7 @@ const METRIC_COLORS: Record<string, string> = {
 export function renderTrainingChart(
 	el: HTMLElement,
 	dailyData: DailyData[],
-	config: TrainingsConfig,
+	config: CategoriesConfig,
 	height: number = 300
 ): void {
 	destroyPrev(el);
@@ -57,7 +58,7 @@ export function renderTrainingChart(
 export function renderBodyChart(
 	el: HTMLElement,
 	dailyData: DailyData[],
-	_config: TrainingsConfig,
+	_config: CategoriesConfig,
 	height: number = 300,
 	metrics: string[] = ['kg']
 ): void {
