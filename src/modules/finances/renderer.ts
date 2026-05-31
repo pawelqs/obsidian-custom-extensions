@@ -1,6 +1,7 @@
 import { Chart, registerables } from 'chart.js';
 import { MonthData } from './types';
-import { CategoriesConfig, resolveColor } from '../../shared/parseCategories';
+import { CategoriesConfig, ColorResolver, makeColorResolver } from '../../shared/parseCategories';
+import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 
 Chart.register(...registerables);
 
@@ -85,9 +86,9 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		chartInstance.destroy();
 	}
 
-	const color = (key: string) => resolveColor(config, key);
+	const color = makeColorResolver(config);
 
-	const legend = renderLegend(config);
+	const legend = renderLegend(config, color);
 	el.appendChild(legend);
 
 	const canvas = el.createEl('canvas');
@@ -158,54 +159,12 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 	(el as any).__chartInstance = newChart;
 }
 
-function renderLegend(config: CategoriesConfig): HTMLElement {
-	const color = (key: string) => resolveColor(config, key);
-
-	const legendContainer = document.createElement('div');
-	legendContainer.classList.add('cext-legend-container');
-
-	for (const group of config.groupOrder) {
-		const cats = config.groupCats[group] || [];
-		const items = cats.map((cat) => ({ label: cat, color: color(cat) }));
-		legendContainer.appendChild(createLegendSection(items, group));
-	}
-
-	const otherItems = ['other', 'savings', 'net income'].map((label) => ({
+function renderLegend(config: CategoriesConfig, color: ColorResolver): HTMLElement {
+	const container = renderColorLegend(config, color);
+	const specials = ['other', 'savings', 'net income'].map((label) => ({
 		label,
 		color: color(label),
 	}));
-	legendContainer.appendChild(createLegendSection(otherItems, 'other'));
-
-	return legendContainer;
-}
-
-function createLegendItem(label: string, colorValue: string): HTMLElement {
-	const item = document.createElement('div');
-	item.classList.add('cext-legend-item');
-
-	const box = document.createElement('div');
-	box.classList.add('cext-legend-item-box');
-	box.style.backgroundColor = colorValue;
-	item.appendChild(box);
-
-	const span = document.createElement('span');
-	span.textContent = label;
-	item.appendChild(span);
-
-	return item;
-}
-
-function createLegendSection(items: Array<{ label: string; color: string }>, title: string): HTMLElement {
-	const section = document.createElement('div');
-
-	const titleEl = document.createElement('div');
-	titleEl.classList.add('cext-legend-section-title');
-	titleEl.textContent = title;
-	section.appendChild(titleEl);
-
-	for (const item of items) {
-		section.appendChild(createLegendItem(item.label, item.color));
-	}
-
-	return section;
+	container.appendChild(renderLegendSection(specials, 'other'));
+	return container;
 }

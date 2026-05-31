@@ -24,6 +24,7 @@ src/
   shared/
     parseCategories.ts          # Shared parser for ## Categories / ## Kategorie blocks; returns CategoriesConfig
     parseCategories.test.ts
+    colorLegend.ts              # Generic legend renderer driven by CategoriesConfig (grouped or flat)
   modules/<module>/
     types.ts                    # Domain interfaces (module-specific only; categories config comes from shared)
     parser.ts                   # Markdown → domain types
@@ -46,7 +47,11 @@ src/
 3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched`) prevents duplicate listeners.
 4. Chart.js instance stored on element as `__chartInstance` and destroyed before re-create (avoids memory leak).
 
-**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The same file exports `resolveColor(config, key)` — returns `colorsMap[key]` with a `#aaaaaa` fallback. The parser is generic — no module-specific post-processing.
+**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The parser is generic — no module-specific post-processing.
+
+**Shared color resolver**: `parseCategories.ts` also exports `makeColorResolver(config): ColorResolver` — a *stateful* factory. Returned function looks up `colorsMap[key]` first; for unknown keys it assigns the next color from `FALLBACK_PALETTE` and caches it (same unknown key returns the same color on repeat calls within one resolver instance). Use **one resolver per render** and share it between legend + datasets so colors stay consistent across legend and chart.
+
+**Shared color legend**: `src/shared/colorLegend.ts` exports `renderColorLegend(config, resolver?)` — returns a legend `HTMLElement`. If `groupOrder` is non-empty it draws one section per group; otherwise it draws a single flat section from `colorsMap`. Pass the same resolver instance you use for chart datasets to keep colors aligned. Also exports `renderLegendSection(items, title?)` as a building block so modules can append extra sections (e.g. finances appends `other`/`savings`/`net income` after the generic legend).
 
 **Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
 

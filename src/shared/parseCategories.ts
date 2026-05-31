@@ -9,7 +9,13 @@ type ParseOptions = {
 };
 
 const DEFAULT_HEADINGS = ['Categories', 'Kategorie'];
-const FALLBACK_COLOR = '#aaaaaa';
+
+const FALLBACK_PALETTE = [
+	'#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+	'#1abc9c', '#e67e22', '#e91e63', '#00bcd4', '#8bc34a',
+];
+
+export type ColorResolver = (key: string) => string;
 
 export function parseCategories(content: string, options?: ParseOptions): CategoriesConfig {
 	const headings = options?.headings ?? DEFAULT_HEADINGS;
@@ -68,6 +74,15 @@ export function parseCategories(content: string, options?: ParseOptions): Catego
 	return { colorsMap, groupCats, groupOrder };
 }
 
-export function resolveColor(config: CategoriesConfig, key: string): string {
-	return config.colorsMap[key] || FALLBACK_COLOR;
+export function makeColorResolver(config: CategoriesConfig): ColorResolver {
+	let idx = 0;
+	const assigned: Record<string, string> = {};
+	return (key) => {
+		const known = config.colorsMap[key];
+		if (known) return known;
+		if (!assigned[key]) {
+			assigned[key] = FALLBACK_PALETTE[idx++ % FALLBACK_PALETTE.length] || '#aaaaaa';
+		}
+		return assigned[key];
+	};
 }

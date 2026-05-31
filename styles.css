@@ -6,6 +6,13 @@
 	flex-wrap: wrap;
 }
 
+.cext-legend-container--flat {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 24px;
+	justify-content: center;
+}
+
 .cext-legend-section-title {
 	font-weight: bold;
 	margin-bottom: 8px;

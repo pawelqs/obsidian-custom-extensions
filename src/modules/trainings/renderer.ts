@@ -1,19 +1,20 @@
 import { Chart, registerables } from 'chart.js';
 import { DailyData } from './types';
-import { CategoriesConfig } from '../../shared/parseCategories';
+import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
+import { renderColorLegend } from '../../shared/colorLegend';
 import { aggregateTrainings, aggregateBody } from './aggregator';
 
 Chart.register(...registerables);
-
-const FALLBACK_COLORS = [
-	'#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
-	'#1abc9c', '#e67e22', '#e91e63', '#00bcd4', '#8bc34a',
-];
 
 const METRIC_COLORS: Record<string, string> = {
 	kg: '#3498db',
 	PBF: '#e67e22',
 };
+
+const METRIC_FALLBACK_COLORS = [
+	'#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+	'#1abc9c', '#e67e22', '#e91e63', '#00bcd4', '#8bc34a',
+];
 
 export function renderTrainingChart(
 	el: HTMLElement,
@@ -24,7 +25,9 @@ export function renderTrainingChart(
 	destroyPrev(el);
 
 	const { weeks, categories, hoursByWeekCategory } = aggregateTrainings(dailyData, config);
-	const color = makeColorResolver(config.colorsMap);
+	const color = makeColorResolver(config);
+
+	el.appendChild(renderColorLegend(config, color));
 
 	const canvas = makeChartContainer(el, height);
 	const chart = new Chart(canvas, {
@@ -49,6 +52,9 @@ export function renderTrainingChart(
 					title: { display: true, text: 'godziny' },
 				},
 			},
+			plugins: {
+				legend: { display: false },
+			},
 		},
 	});
 
@@ -70,7 +76,7 @@ export function renderBodyChart(
 	const datasets = metrics.map((m, i) => ({
 		label: m,
 		data: dates.map((date) => series[m]?.get(date) ?? null),
-		borderColor: METRIC_COLORS[m] || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+		borderColor: METRIC_COLORS[m] || METRIC_FALLBACK_COLORS[i % METRIC_FALLBACK_COLORS.length],
 		backgroundColor: 'transparent',
 		borderWidth: 2,
 		tension: 0.3,
@@ -105,18 +111,6 @@ export function renderBodyChart(
 	});
 
 	(el as any).__chartInstance = chart;
-}
-
-function makeColorResolver(colorsMap: Record<string, string>): (cat: string) => string {
-	let fallbackIdx = 0;
-	const fallbackAssigned: Record<string, string> = {};
-	return (cat: string): string => {
-		if (colorsMap[cat]) return colorsMap[cat];
-		if (!fallbackAssigned[cat]) {
-			fallbackAssigned[cat] = FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length] || '#aaaaaa';
-		}
-		return fallbackAssigned[cat];
-	};
 }
 
 function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement {
