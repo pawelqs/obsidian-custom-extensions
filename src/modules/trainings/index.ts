@@ -11,9 +11,11 @@ export class TrainingsModule {
 		const parseChunkConfig = (source: string) => {
 			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
 			const metricsStr = source.match(/metrics:\s*(.+)/)?.[1];
+			const typeStr = source.match(/type:\s*(\w+)/)?.[1];
 			return {
 				height: heightStr ? parseInt(heightStr, 10) : 300,
 				metrics: metricsStr ? metricsStr.split(',').map((m) => m.trim()) : [],
+				chartType: typeStr === 'scatter' ? 'scatter' : 'line',
 			};
 		};
 
@@ -31,7 +33,8 @@ export class TrainingsModule {
 			dailyData: DailyData[],
 			config: CategoriesConfig,
 			height?: number,
-			metrics?: string[]
+			metrics?: string[],
+			chartType?: string
 		) => void;
 
 		const setupRerender = (
@@ -51,7 +54,7 @@ export class TrainingsModule {
 				if (!data) return;
 				el.empty();
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics);
+				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics, chunkConfig.chartType);
 			};
 
 			plugin.registerEvent(this.app.vault.on('modify', onModify));
@@ -62,7 +65,7 @@ export class TrainingsModule {
 				const data = await readAndParse(ctx);
 				if (!data) return;
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics);
+				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics, chunkConfig.chartType);
 				setupRerender(el, ctx, source, renderer);
 			});
 		};

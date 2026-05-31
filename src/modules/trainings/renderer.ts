@@ -66,7 +66,8 @@ export function renderBodyChart(
 	dailyData: DailyData[],
 	_config: CategoriesConfig,
 	height: number = 300,
-	metrics: string[] = ['kg']
+	metrics: string[] = ['kg'],
+	chartType: string = 'line'
 ): void {
 	destroyPrev(el);
 
@@ -108,7 +109,7 @@ export function renderBodyChart(
 	}
 
 	const chart = new Chart(canvas, {
-		type: 'line',
+		type: chartType === 'scatter' ? 'scatter' : 'line',
 		data: { datasets },
 		options: {
 			responsive: true,
