@@ -2,12 +2,13 @@ import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
 import { filterCategories, parseMonths } from './parser';
 import { parseCategories } from '../../shared/parseCategories';
 import { renderChart, renderTable } from './renderer';
+import { ChunkConfig } from '../../shared/chunkConfig';
 
 export class FinancesModule {
 	constructor(private app: App) {}
 
 	register(plugin: Plugin): void {
-		const parseChunkConfig = (source: string) => {
+		const parseChunkConfig = (source: string): ChunkConfig => {
 			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
 			return { height: heightStr ? parseInt(heightStr, 10) : 600 };
 		};
@@ -21,7 +22,7 @@ export class FinancesModule {
 			return { config, months };
 		};
 
-		type Renderer = (el: HTMLElement, months: any[], config: any, height?: number) => void;
+		type Renderer = (el: HTMLElement, months: any[], config: any, chunkConfig: ChunkConfig) => void;
 		const setupRerender = (
 			el: HTMLElement,
 			ctx: MarkdownPostProcessorContext,
@@ -39,7 +40,7 @@ export class FinancesModule {
 				if (!data) return;
 				el.empty();
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.months, data.config, chunkConfig.height);
+				renderer(el, data.months, data.config, chunkConfig);
 			};
 
 			plugin.registerEvent(this.app.vault.on('modify', onModify));
@@ -49,8 +50,8 @@ export class FinancesModule {
 			plugin.registerMarkdownCodeBlockProcessor(blockName, async (source, el, ctx) => {
 				const data = await readAndParse(ctx);
 				if (!data) return;
-				const h = parseChunkConfig(source).height;
-				renderer(el, data.months, data.config, h);
+				const chunkConfig = parseChunkConfig(source);
+				renderer(el, data.months, data.config, chunkConfig);
 				setupRerender(el, ctx, source, renderer);
 			});
 		};

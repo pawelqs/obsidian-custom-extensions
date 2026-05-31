@@ -1,5 +1,5 @@
 import { Chart, registerables } from 'chart.js';
-import { DailyData } from './types';
+import { DailyData, TrainingsChunkConfig } from './types';
 import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend } from '../../shared/colorLegend';
 import { aggregateTrainings, aggregateBody } from './aggregator';
@@ -20,7 +20,7 @@ export function renderTrainingChart(
 	el: HTMLElement,
 	dailyData: DailyData[],
 	config: CategoriesConfig,
-	height: number = 300
+	chunkConfig: TrainingsChunkConfig
 ): void {
 	destroyPrev(el);
 
@@ -29,7 +29,7 @@ export function renderTrainingChart(
 
 	el.appendChild(renderColorLegend(config, color));
 
-	const canvas = makeChartContainer(el, height);
+	const canvas = makeChartContainer(el, chunkConfig.height);
 	const chart = new Chart(canvas, {
 		type: 'bar',
 		data: {
@@ -65,16 +65,14 @@ export function renderBodyChart(
 	el: HTMLElement,
 	dailyData: DailyData[],
 	_config: CategoriesConfig,
-	height: number = 300,
-	metrics: string[] = ['kg'],
-	chartType: string = 'line'
+	chunkConfig: TrainingsChunkConfig
 ): void {
 	destroyPrev(el);
 
-	const { dates, series } = aggregateBody(dailyData, metrics);
+	const { dates, series } = aggregateBody(dailyData, chunkConfig.metrics);
 
-	const canvas = makeChartContainer(el, height);
-	const datasets = metrics.map((m, i) => ({
+	const canvas = makeChartContainer(el, chunkConfig.height);
+	const datasets = chunkConfig.metrics.map((m, i) => ({
 		label: m,
 		data: dates
 			.map((date) => ({ x: new Date(date).getTime(), y: series[m]?.get(date) ?? null }))
@@ -96,20 +94,20 @@ export function renderBodyChart(
 		y: {
 			type: 'linear',
 			position: 'left',
-			title: { display: true, text: metrics[0] || 'kg' },
+			title: { display: true, text: chunkConfig.metrics[0] || 'kg' },
 		},
 	};
-	if (metrics.length > 1) {
+	if (chunkConfig.metrics.length > 1) {
 		scales.y1 = {
 			type: 'linear',
 			position: 'right',
-			title: { display: true, text: metrics[1] },
+			title: { display: true, text: chunkConfig.metrics[1] },
 			grid: { drawOnChartArea: false },
 		};
 	}
 
 	const chart = new Chart(canvas, {
-		type: chartType === 'scatter' ? 'scatter' : 'line',
+		type: chunkConfig.chartType === 'scatter' ? 'scatter' : 'line',
 		data: { datasets },
 		options: {
 			responsive: true,

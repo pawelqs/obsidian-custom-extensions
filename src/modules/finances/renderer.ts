@@ -2,12 +2,13 @@ import { Chart, registerables } from 'chart.js';
 import { MonthData } from './types';
 import { CategoriesConfig, ColorResolver, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
+import { ChunkConfig } from '../../shared/chunkConfig';
 
 Chart.register(...registerables);
 
 const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigits: 0 }) : '');
 
-export function renderTable(el: HTMLElement, months: MonthData[], config: CategoriesConfig) {
+export function renderTable(el: HTMLElement, months: MonthData[], config: CategoriesConfig, _chunkConfig: ChunkConfig) {
 	const table = el.createEl('table');
 	table.classList.add('cext-table');
 
@@ -80,7 +81,7 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Catego
 	}
 }
 
-export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, height: number = 600) {
+export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
 	const chartInstance = (el as any).__chartInstance;
 	if (chartInstance) {
 		chartInstance.destroy();
@@ -94,7 +95,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 	const canvas = el.createEl('canvas');
 	const container = el.createEl('div');
 	container.classList.add('cext-chart-container');
-	container.style.height = `${height}px`;
+	container.style.height = `${chunkConfig.height}px`;
 	container.appendChild(canvas);
 
 	const labels = months.map((m) => m.label);

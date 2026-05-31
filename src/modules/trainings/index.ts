@@ -1,14 +1,14 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
 import { parseDailyData } from './parser';
 import { renderTrainingChart, renderBodyChart } from './renderer';
-import { DailyData } from './types';
+import { DailyData, TrainingsChunkConfig } from './types';
 import { parseCategories, CategoriesConfig } from '../../shared/parseCategories';
 
 export class TrainingsModule {
 	constructor(private app: App) {}
 
 	register(plugin: Plugin): void {
-		const parseChunkConfig = (source: string) => {
+		const parseChunkConfig = (source: string): TrainingsChunkConfig => {
 			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
 			const metricsStr = source.match(/metrics:\s*(.+)/)?.[1];
 			const typeStr = source.match(/type:\s*(\w+)/)?.[1];
@@ -32,9 +32,7 @@ export class TrainingsModule {
 			el: HTMLElement,
 			dailyData: DailyData[],
 			config: CategoriesConfig,
-			height?: number,
-			metrics?: string[],
-			chartType?: string
+			chunkConfig: TrainingsChunkConfig
 		) => void;
 
 		const setupRerender = (
@@ -54,7 +52,7 @@ export class TrainingsModule {
 				if (!data) return;
 				el.empty();
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics, chunkConfig.chartType);
+				renderer(el, data.dailyData, data.config, chunkConfig);
 			};
 
 			plugin.registerEvent(this.app.vault.on('modify', onModify));
@@ -65,7 +63,7 @@ export class TrainingsModule {
 				const data = await readAndParse(ctx);
 				if (!data) return;
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig.height, chunkConfig.metrics, chunkConfig.chartType);
+				renderer(el, data.dailyData, data.config, chunkConfig);
 				setupRerender(el, ctx, source, renderer);
 			});
 		};

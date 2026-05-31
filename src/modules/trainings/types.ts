@@ -1,3 +1,9 @@
+export interface TrainingsChunkConfig {
+	height: number;
+	metrics: string[];
+	chartType: string;
+}
+
 export interface TrainingItem {
 	category: string;
 	hours: number;
