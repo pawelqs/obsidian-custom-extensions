@@ -75,16 +75,23 @@ export function renderBodyChart(
 	const canvas = makeChartContainer(el, height);
 	const datasets = metrics.map((m, i) => ({
 		label: m,
-		data: dates.map((date) => series[m]?.get(date) ?? null),
+		data: dates
+			.map((date) => ({ x: new Date(date).getTime(), y: series[m]?.get(date) ?? null }))
+			.filter((pt): pt is { x: number; y: number } => pt.y !== null),
 		borderColor: METRIC_COLORS[m] || METRIC_FALLBACK_COLORS[i % METRIC_FALLBACK_COLORS.length],
 		backgroundColor: 'transparent',
 		borderWidth: 2,
 		tension: 0.3,
-		spanGaps: true,
 		yAxisID: i === 0 ? 'y' : 'y1',
 	}));
 
 	const scales: any = {
+		x: {
+			type: 'linear',
+			ticks: {
+				callback: (value: number) => formatDate(value),
+			},
+		},
 		y: {
 			type: 'linear',
 			position: 'left',
@@ -102,15 +109,30 @@ export function renderBodyChart(
 
 	const chart = new Chart(canvas, {
 		type: 'line',
-		data: { labels: dates, datasets },
+		data: { datasets },
 		options: {
 			responsive: true,
 			maintainAspectRatio: false,
 			scales,
+			plugins: {
+				tooltip: {
+					callbacks: {
+						title: (items) => {
+							const ts = items[0]?.parsed.x;
+							return ts != null ? formatDate(ts) : '';
+						},
+					},
+				},
+			},
 		},
 	});
 
 	(el as any).__chartInstance = chart;
+}
+
+function formatDate(ts: number): string {
+	const d = new Date(ts);
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement {
