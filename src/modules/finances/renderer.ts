@@ -1,6 +1,6 @@
 import { Chart, registerables } from 'chart.js';
 import { MonthData } from './types';
-import { CategoriesConfig } from '../../shared/parseCategories';
+import { CategoriesConfig, resolveColor } from '../../shared/parseCategories';
 
 Chart.register(...registerables);
 
@@ -85,7 +85,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		chartInstance.destroy();
 	}
 
-	const color = (key: string) => config.colorsMap[key] || '#aaaaaa';
+	const color = (key: string) => resolveColor(config, key);
 
 	const legend = renderLegend(config);
 	el.appendChild(legend);
@@ -97,9 +97,10 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 	container.appendChild(canvas);
 
 	const labels = months.map((m) => m.label);
+	const allCats = Object.values(config.groupCats).flat();
 
 	const datasets = [
-		...config.cats.map((cat) => ({
+		...allCats.map((cat) => ({
 			label: cat,
 			data: months.map((m) => m.cats[cat] || 0),
 			backgroundColor: color(cat),
@@ -158,7 +159,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 }
 
 function renderLegend(config: CategoriesConfig): HTMLElement {
-	const color = (key: string) => config.colorsMap[key] || '#aaaaaa';
+	const color = (key: string) => resolveColor(config, key);
 
 	const legendContainer = document.createElement('div');
 	legendContainer.classList.add('cext-legend-container');

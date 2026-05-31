@@ -44,7 +44,6 @@ describe('parseCategories', () => {
 				'special': ['savings', 'net income'],
 			},
 			groupOrder: ['must', 'wants', 'inne', 'special'],
-			cats: ['mieszkanie', 'jedzenie & rev', 'transport', 'inne', 'other', 'savings', 'net income'],
 		});
 	});
 
@@ -65,7 +64,6 @@ describe('parseCategories', () => {
 			},
 			groupCats: {},
 			groupOrder: [],
-			cats: [],
 		});
 	});
 
@@ -86,7 +84,6 @@ describe('parseCategories', () => {
 			colorsMap: {},
 			groupCats: {},
 			groupOrder: [],
-			cats: [],
 		});
 	});
 

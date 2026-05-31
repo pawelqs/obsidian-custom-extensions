@@ -16,15 +16,15 @@ const SPECIAL_GROUP = 'special';
 
 // Categories in the `**special:**` group (`savings`, `net income`, `other`) are
 // rendered as their own chart datasets — see renderer.ts. Drop the group from
-// `groupCats`/`cats` so they aren't drawn twice; colors are still kept.
+// `groupCats` so they aren't drawn twice; colors are still kept.
 export function filterCategories(config: CategoriesConfig): CategoriesConfig {
 	const groupOrder = config.groupOrder.filter((g) => g !== SPECIAL_GROUP);
 	const groupCats = Object.fromEntries(groupOrder.map((g) => [g, config.groupCats[g] || []]));
-	const cats = groupOrder.flatMap((g) => groupCats[g] || []);
-	return { colorsMap: config.colorsMap, groupCats, groupOrder, cats };
+	return { colorsMap: config.colorsMap, groupCats, groupOrder };
 }
 
 export function parseMonths(content: string, config: CategoriesConfig): MonthData[] {
+	const allCats = Object.values(config.groupCats).flat();
 	const lines = content.split('\n');
 	const months: MonthData[] = [];
 	let current: MonthData | null = null;                                     // Aktualnie parsowany miesiąc
@@ -45,7 +45,7 @@ export function parseMonths(content: string, config: CategoriesConfig): MonthDat
 		const monthMatch = line.match(/^### (\d{4}-\d{2})/);
 		if (monthMatch && monthMatch[1]) {
 			// Stwórz nowy MonthData ze wszystkimi kategoriami = 0
-			const cats = config.cats.reduce(
+			const cats = allCats.reduce(
 				(acc, c) => {
 					acc[c] = 0;
 					return acc;
@@ -124,13 +124,13 @@ export function parseMonths(content: string, config: CategoriesConfig): MonthDat
 			const parsed = parseValue(itemMatch[2] || '');
 
 			// Jeśli brak wartości (null), może to być kategoria dla sub-itemów
-			subCat = parsed === null ? (config.cats.includes(label) ? label : 'inne') : null;
+			subCat = parsed === null ? (allCats.includes(label) ? label : 'inne') : null;
 
 			if (parsed !== null) {
 				if (section === 'expenses') {
 					// Expenses: dodaj do sumy i do konkretnej kategorii
 					current.expenses += parsed;
-					const catName = config.cats.includes(label) ? label : 'inne';
+					const catName = allCats.includes(label) ? label : 'inne';
 					current.cats[catName] = (current.cats[catName] || 0) + parsed;
 				} else {
 					// Income/taxes/savings: dodaj do sumy sekcji

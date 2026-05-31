@@ -2,7 +2,6 @@ export interface CategoriesConfig {
 	colorsMap: Record<string, string>;
 	groupCats: Record<string, string[]>;
 	groupOrder: string[];
-	cats: string[];
 }
 
 type ParseOptions = {
@@ -10,6 +9,7 @@ type ParseOptions = {
 };
 
 const DEFAULT_HEADINGS = ['Categories', 'Kategorie'];
+const FALLBACK_COLOR = '#aaaaaa';
 
 export function parseCategories(content: string, options?: ParseOptions): CategoriesConfig {
 	const headings = options?.headings ?? DEFAULT_HEADINGS;
@@ -65,7 +65,9 @@ export function parseCategories(content: string, options?: ParseOptions): Catego
 		}
 	}
 
-	const cats = groupOrder.flatMap((g) => groupCats[g] || []);
+	return { colorsMap, groupCats, groupOrder };
+}
 
-	return { colorsMap, groupCats, groupOrder, cats };
+export function resolveColor(config: CategoriesConfig, key: string): string {
+	return config.colorsMap[key] || FALLBACK_COLOR;
 }

@@ -12,7 +12,6 @@ const expectedConfig = {
 	},
 	groupCats: {},
 	groupOrder: [],
-	cats: [],
 };
 
 const expectedDailyData = [

@@ -46,9 +46,9 @@ src/
 3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched`) prevents duplicate listeners.
 4. Chart.js instance stored on element as `__chartInstance` and destroyed before re-create (avoids memory leak).
 
-**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`, `cats`). It is generic — no module-specific post-processing.
+**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The same file exports `resolveColor(config, key)` — returns `colorsMap[key]` with a `#aaaaaa` fallback. The parser is generic — no module-specific post-processing.
 
-**Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder`/`cats` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
+**Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
 
 **Finances parser detail** (`parseMonths`): Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
 
@@ -119,7 +119,7 @@ Rendering functions should be thin Chart.js layers. Extract data transforms into
 - One-line `/** */` above an exported function is fine when it adds something the name doesn't.
 
 ### Avoiding redundant fields
-Don't carry data that can be derived from another field. Example: a `categories: string[]` alongside `colorsMap: Record<string, string>` is redundant — `Object.keys(colorsMap)` preserves insertion order and gives the same list. Drop the duplicate.
+Don't carry data that can be derived from another field. Example: a flat `cats: string[]` alongside `groupCats: Record<string, string[]>` is redundant — `Object.values(groupCats).flat()` (or `groupOrder.flatMap((g) => groupCats[g])`) gives the same list in the same order. Derive at the call site instead.
 
 ### Naming
 Prefer descriptive names that say what the value *is*, not how it's built. `dailyData: DailyData[]` reads better than `days: DayData[]`; `aggregateTrainings` reads better than `aggregateByWeek`. The cost of a rename is one find/replace; the cost of a cryptic name compounds with every reader.

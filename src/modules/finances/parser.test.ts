@@ -18,8 +18,7 @@ const expectedConfig = {
 		'wants': ['transport'],
 		'inne': ['inne']
 	},
-	groupOrder: ['must', 'wants', 'inne'],
-	cats: ['mieszkanie', 'jedzenie & rev', 'transport', 'inne']
+	groupOrder: ['must', 'wants', 'inne']
 };
 
 const expectedMonths = [
@@ -67,18 +66,16 @@ describe('Parser', () => {
 });
 
 describe('filterCategories', () => {
-	it('drops the special group from groupOrder/groupCats/cats and keeps colors', () => {
+	it('drops the special group from groupOrder/groupCats and keeps colors', () => {
 		const input = {
 			colorsMap: { a: '#111', s: '#222' },
 			groupCats: { must: ['a'], special: ['s'] },
 			groupOrder: ['must', 'special'],
-			cats: ['a', 's'],
 		};
 		expect(filterCategories(input)).toEqual({
 			colorsMap: { a: '#111', s: '#222' },
 			groupCats: { must: ['a'] },
 			groupOrder: ['must'],
-			cats: ['a'],
 		});
 	});
 });
