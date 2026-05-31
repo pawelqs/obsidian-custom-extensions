@@ -21,8 +21,11 @@ Reload in Obsidian: Settings → Community Plugins → Disable/Enable cext, or C
 ```
 src/
   main.ts                       # Plugin entry, registers all modules
+  shared/
+    parseCategories.ts          # Shared parser for ## Categories / ## Kategorie blocks; returns CategoriesConfig
+    parseCategories.test.ts
   modules/<module>/
-    types.ts                    # Domain interfaces
+    types.ts                    # Domain interfaces (module-specific only; categories config comes from shared)
     parser.ts                   # Markdown → domain types
     aggregator.ts               # (trainings) Domain → chart-ready aggregates
     renderer.ts                 # Aggregates → Chart.js / HTML
@@ -43,7 +46,11 @@ src/
 3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched`) prevents duplicate listeners.
 4. Chart.js instance stored on element as `__chartInstance` and destroyed before re-create (avoids memory leak).
 
-**Finances parser detail**: Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
+**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`, `cats`). It is generic — no module-specific post-processing.
+
+**Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder`/`cats` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
+
+**Finances parser detail** (`parseMonths`): Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
 
 ## Data Format
 
@@ -56,7 +63,13 @@ src/
 - transport: #55d4e0
 **inne:**
 - relacje: #cc5aaa
+**special:**
+- savings:    #2ca02c
+- net income: #2ca02c
+- other:      #b0b0b0
 ```
+
+The `**special:**` group is finances-only convention: holds labels that the chart renders as derived datasets (savings bar, net income line, "other" = unallocated income). They need a color defined here but are dropped from regular `cats`/`groupCats` by `filterCategories` (otherwise they'd be drawn twice).
 
 ### 2026-05
 - income:
@@ -85,7 +98,7 @@ Strict mode enabled. `baseUrl: src` allows clean imports. All undefined cases ha
 
 **Add code block processor**: Register in `index.ts` `register()` with `plugin.registerMarkdownCodeBlockProcessor('cext-<module>-<view>', ...)`. Follow the naming convention above.
 
-**Add a new module**: Mirror `src/modules/finances/` or `src/modules/trainings/` — same file shape. Register the module class in `src/main.ts` `onload()`.
+**Add a new module**: Mirror `src/modules/finances/` or `src/modules/trainings/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`.
 
 ## Conventions
 
