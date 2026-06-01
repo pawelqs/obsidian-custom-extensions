@@ -2,14 +2,13 @@
 
 ### 2026-03
 - income:
-	- wynagrodzenie: b2b 1000, 
+	- wynagrodzenie: b2b 1000,
 	- freelance: 300
 - taxes:
 	- PIT: 100
 	- ZUS: 200
 - savings:
-	- ETF: 100
-	- lokata: 200
+	- konto: -200
 - expenses:
 	- mieszkanie: 100
 	- jedzenie & rev: główne 100, inne 50

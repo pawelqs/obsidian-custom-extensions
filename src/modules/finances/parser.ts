@@ -4,9 +4,9 @@ import { CategoriesConfig } from '../../shared/parseCategories';
 function parseValue(str: string): number | null {
 	str = str.trim();
 	if (!str) return null;
-	if (/^[\d.]+$/.test(str)) return parseFloat(str);
+	if (/^-?[\d.]+$/.test(str)) return parseFloat(str);
 	return str.split(',').reduce((sum, part) => {
-		const nums = part.match(/[\d.]+/g);
+		const nums = part.match(/-?[\d.]+/g);
 		const lastNum = nums?.[nums.length - 1];
 		return sum + (lastNum ? parseFloat(lastNum) : 0);
 	}, 0);

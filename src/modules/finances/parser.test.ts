@@ -27,7 +27,7 @@ const expectedMonths = [
 		label: '2026-03',
 		income: 1300,
 		taxes: 300,
-		savings: 300,
+		savings: -200,
 		expenses: 300,
 		cats: {
 			'mieszkanie': 100,
