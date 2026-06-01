@@ -55,7 +55,7 @@ src/
 
 **Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
 
-**Finances parser detail** (`parseMonths`): Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
+**Finances parser detail** (`parseMonths`): Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures. Negative values are supported (e.g. `savings: -200` means a withdrawal). The chart renders a red overlay box on the net income line to indicate the withdrawal amount.
 
 ## Data Format
 
@@ -82,7 +82,8 @@ The `**special:**` group is finances-only convention: holds labels that the char
 - taxes:
   - PIT: 100
 - savings:
-  - ETF: 100
+  - ETF: 100         # positive: money saved
+  - konto: -200      # negative: withdrawal from savings
 - expenses:
   - mieszkanie: 100
   - transport:
