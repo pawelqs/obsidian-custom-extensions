@@ -4,9 +4,9 @@ import { CategoriesConfig, ColorResolver, makeColorResolver } from '../../shared
 import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 import { ChunkConfig } from '../../shared/chunkConfig';
 
-Chart.register(...registerables);
-
 const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigits: 0 }) : '');
+
+Chart.register(...registerables);
 
 export function renderTable(el: HTMLElement, months: MonthData[], config: CategoriesConfig, _chunkConfig: ChunkConfig) {
 	const table = el.createEl('table');
@@ -118,7 +118,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		},
 		{
 			label: 'savings',
-			data: months.map((m) => m.savings),
+			data: months.map((m) => Math.max(0, m.savings)),
 			backgroundColor: color('savings'),
 			borderWidth: 1,
 			stack: 'stack',
@@ -132,13 +132,13 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 			borderWidth: 2,
 			pointRadius: 4,
 			tension: 0.3,
-			order: 0,
 		},
 	];
 
 	const newChart = new Chart(canvas, {
 		type: 'bar',
 		data: { labels, datasets },
+		plugins: [createSavingsWithdrawalOverlay(months)],
 		options: {
 			responsive: true,
 			maintainAspectRatio: false,
@@ -158,6 +158,38 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 	});
 
 	(el as any).__chartInstance = newChart;
+}
+
+function createSavingsWithdrawalOverlay(months: MonthData[]) {
+	return {
+		id: 'negativeSavings',
+		afterDatasetsDraw(chart: any) {
+			const ctx = chart.ctx;
+			const xScale = chart.scales.x;
+			const yScale = chart.scales.y;
+
+			months.forEach((monthData, index) => {
+				if (monthData.savings >= 0) return;
+
+				const barWidth = (chart.getDatasetMeta(0).data[index] as any)?.width ?? 20;
+				const netIncome = monthData.income - monthData.taxes;
+
+				const xMin = xScale.getPixelForValue(index) - barWidth / 2;
+				const yBottom = yScale.getPixelForValue(netIncome);
+				const yTop = yScale.getPixelForValue(netIncome + Math.abs(monthData.savings));
+
+				ctx.save();
+				ctx.strokeStyle = '#ff0000';
+				ctx.lineWidth = 2;
+				ctx.strokeRect(xMin, yTop, barWidth, yBottom - yTop);
+				ctx.restore();
+			});
+
+			// Box rysuje się nad słupkami, więc przerysuj linię net income na wierzch
+			const i = chart.data.datasets.findIndex((d: any) => d.label === 'net income');
+			if (i >= 0) chart.getDatasetMeta(i).controller.draw();
+		},
+	};
 }
 
 function renderLegend(config: CategoriesConfig, color: ColorResolver): HTMLElement {
