@@ -3,7 +3,7 @@ import { FinancesModule } from './modules/finances';
 import { TrainingsModule } from './modules/trainings';
 import { MapModule } from './modules/map';
 
-export default class MyPlugin extends Plugin {
+export default class CextPlugin extends Plugin {
 	async onload() {
 		const finances = new FinancesModule(this.app);
 		finances.register(this);

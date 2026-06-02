@@ -15,6 +15,8 @@ bun run lint     # Lint code
 
 Reload in Obsidian: Settings → Community Plugins → Disable/Enable cext, or Cmd+R with Hot-Reload.
 
+**Shell usage**: Don't prefix commands with `cd` into the project directory. The shell already runs in the project root, and a `cd` inside a compound command (`cd … && …`) triggers an extra permission prompt. Use absolute paths or relative paths from the project root instead. For the same reason, avoid `git -C <path> …` — the `-C` flag hides the subcommand from Claude Code's read-only detection, so even read-only git commands prompt. Run plain `git status` / `git ls-files` etc. from the project root.
+
 ## Architecture
 
 **Module structure** (each module follows the same shape):
