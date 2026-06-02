@@ -3,6 +3,7 @@ import { parseLocations } from './parser';
 import { renderMap } from './renderer';
 import { MapChunkConfig } from './types';
 import { parseCategories } from '../../shared/parseCategories';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 export class MapModule {
 	constructor(private app: App) {}
@@ -29,8 +30,8 @@ export class MapModule {
 			renderMap(el, data.locations, data.config, chunkConfig);
 
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-			if (!(file instanceof TFile) || (el as any).__mapWatched) return;
-			(el as any).__mapWatched = true;
+			if (!(file instanceof TFile) || getElementState<boolean>(el, '__mapWatched')) return;
+			setElementState(el, '__mapWatched', true);
 
 			const onModify = async (modifiedFile: TFile) => {
 				if (modifiedFile.path !== file.path) return;

@@ -1,8 +1,10 @@
 import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
 import { filterCategories, parseMonths } from './parser';
-import { parseCategories } from '../../shared/parseCategories';
+import { CategoriesConfig, parseCategories } from '../../shared/parseCategories';
 import { renderChart, renderTable } from './renderer';
 import { ChunkConfig } from '../../shared/chunkConfig';
+import { MonthData } from './types';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 export class FinancesModule {
 	constructor(private app: App) {}
@@ -22,7 +24,7 @@ export class FinancesModule {
 			return { config, months };
 		};
 
-		type Renderer = (el: HTMLElement, months: any[], config: any, chunkConfig: ChunkConfig) => void;
+		type Renderer = (el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) => void;
 		const setupRerender = (
 			el: HTMLElement,
 			ctx: MarkdownPostProcessorContext,
@@ -31,8 +33,8 @@ export class FinancesModule {
 		) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return;
-			if ((el as any).__financeWatched) return;
-			(el as any).__financeWatched = true;
+			if (getElementState<boolean>(el, '__financeWatched')) return;
+			setElementState(el, '__financeWatched', true);
 
 			const onModify = async (modifiedFile: TFile) => {
 				if (modifiedFile.path !== file.path) return;

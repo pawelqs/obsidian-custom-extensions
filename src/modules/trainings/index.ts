@@ -3,6 +3,7 @@ import { parseDailyData } from './parser';
 import { renderTrainingChart, renderBodyChart } from './renderer';
 import { DailyData, TrainingsChunkConfig } from './types';
 import { parseCategories, CategoriesConfig } from '../../shared/parseCategories';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 export class TrainingsModule {
 	constructor(private app: App) {}
@@ -43,8 +44,8 @@ export class TrainingsModule {
 		) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return;
-			if ((el as any).__trainingsWatched) return;
-			(el as any).__trainingsWatched = true;
+			if (getElementState<boolean>(el, '__trainingsWatched')) return;
+			setElementState(el, '__trainingsWatched', true);
 
 			const onModify = async (modifiedFile: TFile) => {
 				if (modifiedFile.path !== file.path) return;

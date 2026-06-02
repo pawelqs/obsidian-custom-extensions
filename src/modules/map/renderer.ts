@@ -2,6 +2,7 @@ import * as L from 'leaflet';
 import { MapLocation, MapChunkConfig } from './types';
 import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend, renderLegendItem } from '../../shared/colorLegend';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 export function renderMap(
 	el: HTMLElement,
@@ -21,7 +22,7 @@ export function renderMap(
 	container.style.height = `${chunkConfig.height}px`;
 
 	let cancelled = false;
-	(el as any).__mapCancel = () => { cancelled = true; };
+	setElementState(el, '__mapCancel', () => { cancelled = true; });
 
 	setTimeout(() => {
 		if (cancelled) return;
@@ -59,7 +60,7 @@ export function renderMap(
 			map.setView([52.0, 19.0], 6);
 		}
 
-		(el as any).__mapInstance = map;
+		setElementState(el, '__mapInstance', map);
 	}, 50);
 }
 
@@ -91,11 +92,11 @@ function buildLegend(
 }
 
 function destroyPrev(el: HTMLElement): void {
-	const cancel = (el as any).__mapCancel;
+	const cancel = getElementState<() => void>(el, '__mapCancel');
 	if (cancel) cancel();
-	const prev = (el as any).__mapInstance;
+	const prev = getElementState<L.Map>(el, '__mapInstance');
 	if (prev) {
 		prev.remove();
-		delete (el as any).__mapInstance;
+		setElementState(el, '__mapInstance', undefined);
 	}
 }

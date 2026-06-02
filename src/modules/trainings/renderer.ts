@@ -1,8 +1,9 @@
-import { Chart, registerables } from 'chart.js';
+import { Chart, ChartOptions, registerables } from 'chart.js';
 import { DailyData, TrainingsChunkConfig } from './types';
 import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend } from '../../shared/colorLegend';
 import { aggregateTrainings, aggregateBody } from './aggregator';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 Chart.register(...registerables);
 
@@ -58,7 +59,7 @@ export function renderTrainingChart(
 		},
 	});
 
-	(el as any).__chartInstance = chart;
+	setElementState(el, '__chartInstance', chart);
 }
 
 export function renderBodyChart(
@@ -84,11 +85,11 @@ export function renderBodyChart(
 		yAxisID: i === 0 ? 'y' : 'y1',
 	}));
 
-	const scales: any = {
+	const scales: NonNullable<ChartOptions<'line'>['scales']> = {
 		x: {
 			type: 'linear',
 			ticks: {
-				callback: (value: number) => formatDate(value),
+				callback: (value) => formatDate(Number(value)),
 			},
 		},
 		y: {
@@ -126,7 +127,7 @@ export function renderBodyChart(
 		},
 	});
 
-	(el as any).__chartInstance = chart;
+	setElementState(el, '__chartInstance', chart);
 }
 
 function formatDate(ts: number): string {
@@ -142,6 +143,6 @@ function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement 
 }
 
 function destroyPrev(el: HTMLElement): void {
-	const prev = (el as any).__chartInstance;
+	const prev = getElementState<Chart>(el, '__chartInstance');
 	if (prev) prev.destroy();
 }
