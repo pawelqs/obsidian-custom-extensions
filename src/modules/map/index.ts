@@ -37,7 +37,6 @@ export class MapModule {
 				if (modifiedFile.path !== file.path) return;
 				const fresh = await readAndParse(ctx);
 				if (!fresh) return;
-				el.empty();
 				renderMap(el, fresh.locations, fresh.config, chunkConfig);
 			};
 
