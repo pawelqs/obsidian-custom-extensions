@@ -7,6 +7,9 @@ import { getElementState, setElementState } from '../../shared/elementState';
 
 type LatLng = [number, number];
 
+// Fill for points without a category.
+const UNCATEGORIZED_COLOR = '#888888';
+
 export function renderMap(
 	el: HTMLElement,
 	locations: MapLocation[],
@@ -138,8 +141,8 @@ function refreshLegend(
 
 function addMarkers(layer: L.LayerGroup, locations: MapLocation[], color: ColorResolver): void {
 	for (const loc of locations) {
-		// Markers always carry the category color; the route color belongs to the line + arrows.
-		const fillColor = loc.category ? color(loc.category) : '#888888';
+		// Markers carry the category color; the route color stays on the line + arrows.
+		const fillColor = loc.category ? color(loc.category) : UNCATEGORIZED_COLOR;
 		const marker = loc.route !== null && loc.seq !== null
 			? numberedMarker(loc, fillColor)
 			: dotMarker(loc, fillColor);

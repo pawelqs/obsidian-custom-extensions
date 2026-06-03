@@ -33,6 +33,18 @@ describe('parseLocations', () => {
 		]);
 	});
 
+	test('no-implicit-categories: bez dziedziczenia z nagłówka, tylko jawne cat', () => {
+		const input = [
+			'### Parki',
+			'- bullet `geo: 52.4, 21.0`',
+			'- jawne `geo: 52.7, 21.0, cat: inne`',
+		].join('\n');
+		expect(parseLocations(input, emptyConfig, { implicitCategories: false })).toEqual([
+			{ name: 'bullet', lat: 52.4, lon: 21.0, category: null,   route: null, seq: null },
+			{ name: 'jawne',  lat: 52.7, lon: 21.0, category: 'inne', route: null, seq: null },
+		]);
+	});
+
 	test('ignoruje tekst po zamykającym backticku', () => {
 		expect(parseLocations('- Miejsce `geo: 52.9, 21.0` — komentarz po', emptyConfig)).toEqual([
 			{ name: 'Miejsce', lat: 52.9, lon: 21.0, category: null, route: null, seq: null },

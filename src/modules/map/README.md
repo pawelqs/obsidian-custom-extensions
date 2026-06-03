@@ -23,8 +23,13 @@ The geo token accepts an optional tail after the coordinates, in either of two e
 
 In both forms the category falls back to the nearest preceding heading. Points sharing a route are connected into a polyline in ascending `#<n>` order, drawn as numbered markers with direction arrows. A route's color comes from the shared `## Categories` resolver (define `- <name>: #color` to pick it; otherwise a fallback palette color is assigned). The `#<n>` sequence is required for a point to join the route — a route without it is ignored when drawing the path.
 
+## Render block options
+The fenced `cext-map` block accepts these lines:
+- `height: <px>` — map height in pixels (default `400`).
+- `no-implicit-categories` — read-time flag: a point's category comes **only** from an explicit `cat:`/`#tag`, never inherited from the nearest heading. Points without an explicit category render in the neutral color and stay out of the legend.
+
 ## Example
-A complete note: the render block (optional `height` in pixels), the `## Categories` color definitions, and sample locations.
+A complete note: the render block, the `## Categories` color definitions, and sample locations.
 
 ````markdown
 ```cext-map

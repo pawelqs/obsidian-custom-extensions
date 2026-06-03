@@ -1,5 +1,6 @@
 export interface MapChunkConfig {
 	height: number;
+	implicitCategories: boolean; // false → categories come only from explicit cat:/#tag, not from headings
 }
 
 export interface MapLocation {

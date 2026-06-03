@@ -16,7 +16,12 @@ const ROUTE_SIGIL_RE = /(?:^|\s)@(\S+)/;
 // A route value `name#seq`; the trailing `#<n>` (sequence) is optional
 const ROUTE_RE = /^(.+?)\s*#\s*(\d+)\s*$/;
 
-export function parseLocations(content: string, _config: CategoriesConfig): MapLocation[] {
+export function parseLocations(
+	content: string,
+	_config: CategoriesConfig,
+	options: { implicitCategories?: boolean } = {}
+): MapLocation[] {
+	const implicitCategories = options.implicitCategories ?? true;
 	const lines = content.split('\n');
 	const locations: MapLocation[] = [];
 	let currentCategory: string | null = null;
@@ -25,7 +30,8 @@ export function parseLocations(content: string, _config: CategoriesConfig): MapL
 		const headingMatch = line.match(/^(#{1,6})\s+(.+?)(?:\s+`geo:|$)/);
 		if (headingMatch?.[2]) {
 			const name = headingMatch[2].trim();
-			currentCategory = name;
+			// Without implicit categories, headings no longer seed the inherited category.
+			currentCategory = implicitCategories ? name : null;
 
 			const geo = parseGeo(line);
 			if (geo) locations.push({ name, ...geo });
