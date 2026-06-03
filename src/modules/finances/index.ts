@@ -10,11 +10,6 @@ export class FinancesModule {
 	constructor(private app: App) {}
 
 	register(plugin: Plugin): void {
-		const parseChunkConfig = (source: string): ChunkConfig => {
-			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
-			return { height: heightStr ? parseInt(heightStr, 10) : 600 };
-		};
-
 		const readAndParse = async (ctx: MarkdownPostProcessorContext) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
@@ -72,4 +67,9 @@ class FinancesRenderChild extends MarkdownRenderChild {
 		setElementState(this.containerEl, '__financeWatched', undefined);
 		destroyChart(this.containerEl);
 	}
+}
+
+function parseChunkConfig(source: string): ChunkConfig {
+	const heightStr = source.match(/height:\s*(\d+)/)?.[1];
+	return { height: heightStr ? parseInt(heightStr, 10) : 600 };
 }

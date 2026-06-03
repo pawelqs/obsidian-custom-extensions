@@ -12,24 +12,19 @@ export class MapModule {
 	constructor(private app: App) {}
 
 	register(plugin: Plugin): void {
-		const parseChunkConfig = (source: string): MapChunkConfig => {
-			const heightStr = source.match(/height:\s*(\d+)/)?.[1];
-			return { height: heightStr ? parseInt(heightStr, 10) : 400 };
-		};
-
-		const readAndParse = async (ctx: MarkdownPostProcessorContext) => {
+		const readAndParse = async (ctx: MarkdownPostProcessorContext, chunkConfig: MapChunkConfig) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
 			const content = await this.app.vault.read(file);
 			const config = parseCategories(content);
-			const locations = parseLocations(content, config);
+			const locations = parseLocations(content, config, chunkConfig);
 			return { file, config, locations };
 		};
 
 		plugin.registerMarkdownCodeBlockProcessor('cext-map', async (source, el, ctx) => {
-			const data = await readAndParse(ctx);
-			if (!data) return;
 			const chunkConfig = parseChunkConfig(source);
+			const data = await readAndParse(ctx, chunkConfig);
+			if (!data) return;
 			renderMap(el, data.locations, data.config, chunkConfig);
 
 			attachCoordsMarker(el);
@@ -44,7 +39,7 @@ export class MapModule {
 
 			child.registerEvent(this.app.vault.on('modify', async (modifiedFile: TFile) => {
 				if (modifiedFile.path !== data.file.path) return;
-				const fresh = await readAndParse(ctx);
+				const fresh = await readAndParse(ctx, chunkConfig);
 				if (!fresh) return;
 				renderMap(el, fresh.locations, fresh.config, chunkConfig);
 			}));
@@ -112,4 +107,12 @@ function markGeoCode(code: HTMLElement): void {
 	if (GEO_CODE_RE.test(code.textContent ?? '')) {
 		code.classList.add('cext-coords-link');
 	}
+}
+
+function parseChunkConfig(source: string): MapChunkConfig {
+	const heightStr = source.match(/height:\s*(\d+)/)?.[1];
+	return {
+		height: heightStr ? parseInt(heightStr, 10) : 400,
+		implicitCategories: !/no-implicit-categories/i.test(source),
+	};
 }
