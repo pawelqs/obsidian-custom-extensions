@@ -1,8 +1,9 @@
-import { Chart, registerables } from 'chart.js';
+import { Chart, Plugin, registerables } from 'chart.js';
 import { MonthData } from './types';
 import { CategoriesConfig, ColorResolver, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 import { ChunkConfig } from '../../shared/chunkConfig';
+import { getElementState, setElementState } from '../../shared/elementState';
 
 const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigits: 0 }) : '');
 
@@ -81,11 +82,16 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Catego
 	}
 }
 
-export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
-	const chartInstance = (el as any).__chartInstance;
-	if (chartInstance) {
-		chartInstance.destroy();
+export function destroyChart(el: HTMLElement): void {
+	const chart = getElementState<Chart>(el, '__chartInstance');
+	if (chart) {
+		chart.destroy();
+		setElementState(el, '__chartInstance', undefined);
 	}
+}
+
+export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
+	destroyChart(el);
 
 	const color = makeColorResolver(config);
 
@@ -125,7 +131,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		},
 		{
 			label: 'net income',
-			type: 'line' as any,
+			type: 'line' as const,
 			data: months.map((m) => m.income - m.taxes),
 			borderColor: color('net income'),
 			backgroundColor: 'transparent',
@@ -157,21 +163,23 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		},
 	});
 
-	(el as any).__chartInstance = newChart;
+	setElementState(el, '__chartInstance', newChart);
 }
 
-function createSavingsWithdrawalOverlay(months: MonthData[]) {
+function createSavingsWithdrawalOverlay(months: MonthData[]): Plugin<'bar'> {
 	return {
 		id: 'negativeSavings',
-		afterDatasetsDraw(chart: any) {
+		afterDatasetsDraw(chart) {
 			const ctx = chart.ctx;
 			const xScale = chart.scales.x;
 			const yScale = chart.scales.y;
+			if (!xScale || !yScale) return;
 
 			months.forEach((monthData, index) => {
 				if (monthData.savings >= 0) return;
 
-				const barWidth = (chart.getDatasetMeta(0).data[index] as any)?.width ?? 20;
+				const bar = chart.getDatasetMeta(0).data[index] as unknown as { width?: number } | undefined;
+				const barWidth = bar?.width ?? 20;
 				const netIncome = monthData.income - monthData.taxes;
 
 				const xMin = xScale.getPixelForValue(index) - barWidth / 2;
@@ -186,7 +194,7 @@ function createSavingsWithdrawalOverlay(months: MonthData[]) {
 			});
 
 			// Box rysuje się nad słupkami, więc przerysuj linię net income na wierzch
-			const i = chart.data.datasets.findIndex((d: any) => d.label === 'net income');
+			const i = chart.data.datasets.findIndex((d) => d.label === 'net income');
 			if (i >= 0) chart.getDatasetMeta(i).controller.draw();
 		},
 	};

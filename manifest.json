@@ -1,9 +1,9 @@
 {
 	"id": "cext",
-	"name": "My Extensions",
+	"name": "Custom Extensions",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Misc",
+	"description": "Personal toolkit: finances, training/body metrics, and maps rendered from Markdown.",
 	"author": "Pawel Kus",
 	"isDesktopOnly": false
 }
