@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Start
 
-Obsidian plugin (TypeScript, bun/esbuild) with two modules: **Finances** (markdown finance data → HTML table + Chart.js stacked bar) and **Trainings** (markdown training/body data → stacked bar per-week + line chart for body metrics).
+Obsidian plugin (TypeScript, bun/esbuild) with three modules: **Finances** (markdown finance data → HTML table + Chart.js stacked bar), **Trainings** (markdown training/body data → stacked bar per-week + line chart for body metrics), and **Map** (markdown `geo:` tokens → Leaflet map with clickable inline coords).
 
 ```bash
 bun run dev      # Watch mode
@@ -27,11 +27,13 @@ src/
     parseCategories.ts          # Shared parser for ## Categories / ## Kategorie blocks; returns CategoriesConfig
     parseCategories.test.ts
     colorLegend.ts              # Generic legend renderer driven by CategoriesConfig (grouped or flat)
+    elementState.ts             # Typed get/setElementState — one place for the el-state cast
+    chunkConfig.ts              # Shared ChunkConfig { height } interface
   modules/<module>/
     types.ts                    # Domain interfaces (module-specific only; categories config comes from shared)
     parser.ts                   # Markdown → domain types
     aggregator.ts               # (trainings) Domain → chart-ready aggregates
-    renderer.ts                 # Aggregates → Chart.js / HTML
+    renderer.ts                 # Aggregates → Chart.js / Leaflet / HTML
     index.ts                    # Module class: registers code block processors + file watcher
     parser.test.ts              # Tests (bun:test)
     testdata/test.txt           # Test data, imported as a plain string
@@ -40,20 +42,25 @@ src/
 **Modules**:
 - **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` (with `**group:**` markers) and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
 - **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
+- **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: lat, lon[, cat: category]` `` tokens (headings or list items) and drops a colored marker per location; category color comes from the shared `## Categories`/`## Kategorie` block. Also marks matching inline `geo:` tokens elsewhere in the note as clickable links (`.cext-coords-link`) that recenter the map via a `cext-map-fly` CustomEvent. Has no `aggregator.ts` (parser → renderer directly).
 
-**Code block naming**: `cext-<module>-<view>` — e.g. `cext-finances-chart`, `cext-finances-table`, `cext-trainings-chart`, `cext-trainings-body`. The `cext-` prefix scopes to this plugin and avoids collisions with other plugins' processors.
+**Code block naming**: `cext-<module>-<view>` — e.g. `cext-finances-chart`, `cext-finances-table`, `cext-trainings-chart`, `cext-trainings-body`. Single-view modules drop the `-<view>` suffix (`cext-map`). The `cext-` prefix scopes to this plugin and avoids collisions with other plugins' processors.
 
 **Key flow**:
 1. Module's `index.ts` registers code block processors with `plugin.registerMarkdownCodeBlockProcessor(name, handler)`.
 2. Handler reads the containing file via `app.vault.read`, parses it, hands data to renderer.
-3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched`) prevents duplicate listeners.
-4. Chart.js instance stored on element as `__chartInstance` and destroyed before re-create (avoids memory leak).
+3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched` / `__mapWatched`) prevents duplicate listeners.
+4. Chart.js instance stored on element as `__chartInstance` (map: `__mapInstance`) and destroyed before re-create (avoids memory leak).
 
-**Shared categories parser**: Both modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The parser is generic — no module-specific post-processing.
+**Element state**: transient per-element state (chart/map instances, watcher flags, observers) is read/written via `getElementState<T>(el, key)` / `setElementState(el, key, value)` from `src/shared/elementState.ts` — one typed cast in one place instead of `(el as any).__whatever` scattered across renderers. Use these rather than direct property access.
+
+**Map lifecycle**: unlike finances/trainings (which rely on the `__*Watched` flag + `vault.on('modify')`), the map module ties cleanup to a `MarkdownRenderChild` added via `ctx.addChild`. Its `onunload` (fired when the note closes or the section re-renders) disconnects the `MutationObserver`, clears the state flags, and calls `destroyMap`. The modify-listener is registered on the child via `child.registerEvent`, and the click-to-recenter handler is one delegated `registerDomEvent(document, 'click', …)` for all geo tokens.
+
+**Shared categories parser**: All three modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The parser is generic — no module-specific post-processing.
 
 **Shared color resolver**: `parseCategories.ts` also exports `makeColorResolver(config): ColorResolver` — a *stateful* factory. Returned function looks up `colorsMap[key]` first; for unknown keys it assigns the next color from `FALLBACK_PALETTE` and caches it (same unknown key returns the same color on repeat calls within one resolver instance). Use **one resolver per render** and share it between legend + datasets so colors stay consistent across legend and chart.
 
-**Shared color legend**: `src/shared/colorLegend.ts` exports `renderColorLegend(config, resolver?)` — returns a legend `HTMLElement`. If `groupOrder` is non-empty it draws one section per group; otherwise it draws a single flat section from `colorsMap`. Pass the same resolver instance you use for chart datasets to keep colors aligned. Also exports `renderLegendSection(items, title?)` as a building block so modules can append extra sections (e.g. finances appends `other`/`savings`/`net income` after the generic legend).
+**Shared color legend**: `src/shared/colorLegend.ts` exports `renderColorLegend(config, resolver?)` — returns a legend `HTMLElement`. If `groupOrder` is non-empty it draws one section per group; otherwise it draws a single flat section from `colorsMap`. Pass the same resolver instance you use for chart datasets to keep colors aligned. Also exports `renderLegendSection(items, title?)` and `renderLegendItem(label, color)` as building blocks so modules can append extra sections/items (e.g. finances appends `other`/`savings`/`net income` after the generic legend; map builds its legend from the categories actually present on the map).
 
 **Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
 
@@ -92,21 +99,23 @@ The `**special:**` group is finances-only convention: holds labels that the char
     - paliwo: 50
 ```
 
+**Map** — geo tokens anywhere in the note (heading or list item); the name is the text before the token, category is optional (falls back to the nearest preceding heading):
+
+```markdown
+## Italy
+- Roma `geo: 41.9028, 12.4964, cat: city`
+- Vesuvio `geo: 40.821, 14.426`
+```
+
 ## TypeScript
 
-Strict mode enabled. `baseUrl: src` allows clean imports. All undefined cases have proper guards.
+Strict mode enabled. `baseUrl: src` allows clean imports.
 
 ## Common Tasks
 
 **Add category group**: Edit `## Categories` in markdown, add `**group:**` + `- name: #color`. Parser auto-detects.
 
-**Debug parser**: Add `console.log()` in `parseMonths()`, run `bun run dev`, check Obsidian console (F12).
-
-**Modify chart**: Edit `renderer.ts` `renderChart()` — change chart type, stack options, line styling.
-
-**Add code block processor**: Register in `index.ts` `register()` with `plugin.registerMarkdownCodeBlockProcessor('cext-<module>-<view>', ...)`. Follow the naming convention above.
-
-**Add a new module**: Mirror `src/modules/finances/` or `src/modules/trainings/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`.
+**Add a new module**: Mirror `src/modules/finances/`, `src/modules/trainings/`, or (for a non-chart, single-view module) `src/modules/map/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own, and `getElementState`/`setElementState` from `src/shared/elementState.ts` for any per-element state. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`.
 
 ## Conventions
 
@@ -149,13 +158,3 @@ Uses `bun:test` (built-in). Test data lives in `src/modules/<module>/testdata/` 
 - Keep test data realistic — mirror the actual markdown format users would write, including tricky cases (inline + multi-line, Polish decimal commas, exercise lists after `:`).
 - Extract long input strings to `const input = '...'` before the `expect()` — avoids long lines.
 - Test pure functions directly; mutating functions force test setup boilerplate (another reason to prefer pure).
-
-## Troubleshooting
-
-**Chart not updating**: Verify `vault.on('modify')` registered via `registerEvent()` in index.ts, check `__financeWatched` flag.
-
-**Parser wrong values**: Log indentation detection in `parseMonths()`. Verify markdown uses spaces (not mixed tabs).
-
-**Memory leak**: Confirm Chart instance destroyed before re-creating in `renderChart()`.
-
-**Type errors**: Run `bun run build` for full errors. Check `tsconfig.json` strict settings.
