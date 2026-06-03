@@ -81,7 +81,7 @@ function attachCoordsMarker(el: HTMLElement): void {
 	if (getElementState<boolean>(el, '__coordsWatched')) return;
 	setElementState(el, '__coordsWatched', true);
 
-	const preview = el.closest('.markdown-preview-view') as HTMLElement | null;
+	const preview = el.closest<HTMLElement>('.markdown-preview-view');
 	if (!preview) return;
 
 	markGeoCodes(preview);
@@ -102,7 +102,7 @@ function attachCoordsMarker(el: HTMLElement): void {
 function markGeoCodes(root: HTMLElement): void {
 	if (root.matches('code')) markGeoCode(root);
 	for (const code of Array.from(root.querySelectorAll('code'))) {
-		markGeoCode(code as HTMLElement);
+		markGeoCode(code);
 	}
 }
 
