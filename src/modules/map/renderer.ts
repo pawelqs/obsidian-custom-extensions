@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import { MapLocation, MapChunkConfig } from './types';
+import { MapLocation, MapChunkConfig, MapFlyDetail, MAP_FLY_EVENT } from './types';
 import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend, renderLegendItem } from '../../shared/colorLegend';
 import { getElementState, setElementState } from '../../shared/elementState';
@@ -55,20 +55,42 @@ export function renderMap(
 			map.setView([52.0, 19.0], 6);
 		}
 
+		// Scope the event bus to this note's preview so clicks don't fly maps in other notes.
+		const flyTarget = el.closest('.markdown-preview-view') ?? document;
+		const flyHandler = (e: Event) => {
+			const { lat, lon } = (e as CustomEvent<MapFlyDetail>).detail;
+			map.flyTo([lat, lon], Math.max(map.getZoom(), 10));
+		};
+		flyTarget.addEventListener(MAP_FLY_EVENT, flyHandler);
+
 		setElementState(el, '__mapInstance', map);
 		setElementState(el, '__mapMarkerLayer', markerLayer);
+		setElementState(el, '__mapFlyHandler', flyHandler);
+		setElementState(el, '__mapFlyTarget', flyTarget);
 	}, 50);
 }
 
 export function destroyMap(el: HTMLElement): void {
 	const cancel = getElementState<() => void>(el, '__mapCancel');
 	if (cancel) cancel();
+	setElementState(el, '__mapCancel', undefined);
+
+	const flyHandler = getElementState<EventListener>(el, '__mapFlyHandler');
+	const flyTarget = getElementState<EventTarget>(el, '__mapFlyTarget');
+	if (flyHandler && flyTarget) {
+		flyTarget.removeEventListener(MAP_FLY_EVENT, flyHandler);
+		setElementState(el, '__mapFlyHandler', undefined);
+		setElementState(el, '__mapFlyTarget', undefined);
+	}
+
 	const map = getElementState<L.Map>(el, '__mapInstance');
 	if (map) {
 		map.remove();
 		setElementState(el, '__mapInstance', undefined);
 		setElementState(el, '__mapMarkerLayer', undefined);
 	}
+
+	setElementState(el, '__mapLegend', undefined);
 }
 
 function refreshMarkers(
@@ -112,12 +134,17 @@ function addMarkers(
 			opacity: 1,
 			fillOpacity: 0.85,
 		});
+		const name = escapeHtml(loc.name);
 		const popupContent = loc.category
-			? `<b>${loc.name}</b><br><span style="color:${fillColor}">●</span> ${loc.category}`
-			: `<b>${loc.name}</b>`;
+			? `<b>${name}</b><br><span style="color:${escapeHtml(fillColor)}">●</span> ${escapeHtml(loc.category)}`
+			: `<b>${name}</b>`;
 		marker.bindPopup(popupContent);
 		layer.addLayer(marker);
 	}
+}
+
+function escapeHtml(s: string): string {
+	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function buildLegend(
