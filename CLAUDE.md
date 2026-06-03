@@ -42,7 +42,7 @@ src/
 **Modules**:
 - **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` (with `**group:**` markers) and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
 - **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
-- **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: lat, lon[, cat: category]` `` tokens (headings or list items) and drops a colored marker per location; category color comes from the shared `## Categories`/`## Kategorie` block. Also marks matching inline `geo:` tokens elsewhere in the note as clickable links (`.cext-coords-link`) that recenter the map via a `cext-map-fly` CustomEvent. Has no `aggregator.ts` (parser → renderer directly).
+- **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: lat, lon[, key: value …]` `` tokens (headings or list items) and drops a colored marker per location; category color comes from the shared `## Categories`/`## Kategorie` block. The token tail accepts `cat:` and `route:` in any order (parsed by `parseGeo`); a route value is `name#seq` (e.g. `route: day1#2`), where the `#seq` suffix sets the ordering. Points with both `route` and `seq` are grouped by `buildRoutes` (parser.ts, pure + tested) into ordered `MapRoute`s and rendered as a polyline with numbered `divIcon` markers and direction arrows (rotated `divIcon` at each segment midpoint — no extra Leaflet plugin); route color comes from the same shared color resolver (key = route name). Also marks matching inline `geo:` tokens elsewhere in the note as clickable links (`.cext-coords-link`) that recenter the map via a `cext-map-fly` CustomEvent. Has no `aggregator.ts` (parser → renderer directly; `buildRoutes` lives in parser.ts).
 
 **Code block naming**: `cext-<module>-<view>` — e.g. `cext-finances-chart`, `cext-finances-table`, `cext-trainings-chart`, `cext-trainings-body`. Single-view modules drop the `-<view>` suffix (`cext-map`). The `cext-` prefix scopes to this plugin and avoids collisions with other plugins' processors.
 
@@ -99,12 +99,16 @@ The `**special:**` group is finances-only convention: holds labels that the char
     - paliwo: 50
 ```
 
-**Map** — geo tokens anywhere in the note (heading or list item); the name is the text before the token, category is optional (falls back to the nearest preceding heading):
+**Map** — geo tokens anywhere in the note (heading or list item); the name is the text before the token, `cat`/`route` are optional and may appear in any order (category falls back to the nearest preceding heading):
 
 ```markdown
 ## Italy
 - Roma `geo: 41.9028, 12.4964, cat: city`
 - Vesuvio `geo: 40.821, 14.426`
+
+## Day trip          # route: name#seq — points sharing a name connect in seq order
+- Stop 1 `geo: 41.9028, 12.4964, route: day1#1`
+- Stop 2 `geo: 41.890, 12.492, route: day1#2`
 ```
 
 ## TypeScript

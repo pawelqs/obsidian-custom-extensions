@@ -7,6 +7,14 @@ export interface MapLocation {
 	lat: number;
 	lon: number;
 	category: string | null;
+	route: string | null;
+	seq: number | null;
+}
+
+// A named path connecting routed locations, ordered ascending by their seq number.
+export interface MapRoute {
+	name: string;
+	points: MapLocation[];
 }
 
 // Contract for the click-to-recenter event shared between the click delegation

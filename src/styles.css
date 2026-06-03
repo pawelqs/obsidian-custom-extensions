@@ -70,3 +70,24 @@
 	color: var(--link-color);
 	text-decoration: underline;
 }
+
+.cext-route-marker {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	border: 2px solid #fff;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	box-shadow: 0 1px 4px #0006;
+}
+
+.cext-route-arrow {
+	font-size: 14px;
+	line-height: 1;
+	text-shadow: 0 0 2px #fff, 0 0 2px #fff;
+}
