@@ -2,14 +2,17 @@ import { CategoriesConfig } from '../../shared/parseCategories';
 import { MapLocation, MapRoute } from './types';
 
 // Matches the backtick-wrapped `geo: lat, lon` token anywhere in a line, capturing
-// the optional comma-separated tail of `key: value` pairs (cat / route / seq) after lon.
-const GEO_RE = /`geo:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*((?:,[^`]*)?)`/;
+// the optional tail (sigils or `key: value` pairs) after lon up to the closing backtick.
+const GEO_RE = /`geo:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*([^`]*?)\s*`/;
 // Splits name from the geo token: everything before the opening ` `geo:`
 const NAME_RE = /^(.+?)\s+`geo:/;
 // Strips optional list marker (- or N.) from start of line
 const LIST_MARKER_RE = /^\s*(?:-|\d+\.)\s+/;
-// A single `key: value` segment from the geo token tail
+// A single `key: value` segment from the geo token tail (verbose form)
 const TAIL_KV_RE = /^\s*(cat|route):\s*(.+?)\s*$/;
+// Sigil forms (space-separated, no spaces inside names): `#category` and `@route`
+const CAT_SIGIL_RE = /(?:^|\s)#(\S+)/;
+const ROUTE_SIGIL_RE = /(?:^|\s)@(\S+)/;
 // A route value `name#seq`; the trailing `#<n>` (sequence) is optional
 const ROUTE_RE = /^(.+?)\s*#\s*(\d+)\s*$/;
 
@@ -79,22 +82,35 @@ function parseGeo(line: string): GeoToken | null {
 		seq: null,
 	};
 
-	for (const segment of (m[3] ?? '').split(',')) {
+	parseTail(m[3] ?? '', token);
+	return token;
+}
+
+// Reads the optional token tail, supporting both forms (sigils take precedence
+// only when present; the two are not expected to be mixed in one token):
+//   sigils:    `#category @route#seq`            — space-separated, no spaces in names
+//   key/value: `, cat: category, route: name#seq` — comma-separated, names may have spaces
+function parseTail(tail: string, token: GeoToken): void {
+	const routeSigil = tail.match(ROUTE_SIGIL_RE);
+	if (routeSigil?.[1]) assignRoute(token, routeSigil[1]);
+
+	const catSigil = tail.match(CAT_SIGIL_RE);
+	if (catSigil?.[1]) token.category = catSigil[1];
+
+	for (const segment of tail.split(',')) {
 		const kv = segment.match(TAIL_KV_RE);
 		if (!kv?.[2]) continue;
-		const value = kv[2];
-		if (kv[1] === 'cat') {
-			token.category = value;
-		} else if (kv[1] === 'route') {
-			const r = value.match(ROUTE_RE);
-			if (r?.[1] && r[2]) {
-				token.route = r[1].trim();
-				token.seq = parseInt(r[2], 10);
-			} else {
-				token.route = value;
-			}
-		}
+		if (kv[1] === 'cat') token.category = kv[2];
+		else if (kv[1] === 'route') assignRoute(token, kv[2]);
 	}
+}
 
-	return token;
+function assignRoute(token: GeoToken, value: string): void {
+	const r = value.match(ROUTE_RE);
+	if (r?.[1] && r[2]) {
+		token.route = r[1].trim();
+		token.seq = parseInt(r[2], 10);
+	} else {
+		token.route = value.trim();
+	}
 }

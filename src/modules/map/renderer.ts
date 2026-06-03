@@ -164,8 +164,8 @@ function numberedMarker(loc: MapLocation, fillColor: string): L.Marker {
 	const icon = L.divIcon({
 		className: 'cext-route-marker-wrapper',
 		html: `<div class="cext-route-marker" style="background:${escapeHtml(fillColor)}">${loc.seq}</div>`,
-		iconSize: [24, 24],
-		iconAnchor: [12, 12],
+		iconSize: [18, 18],
+		iconAnchor: [9, 9],
 	});
 	const marker = L.marker([loc.lat, loc.lon], { icon });
 	marker.bindPopup(popupHtml(loc, fillColor));
