@@ -82,11 +82,16 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Catego
 	}
 }
 
-export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
-	const chartInstance = getElementState<Chart>(el, '__chartInstance');
-	if (chartInstance) {
-		chartInstance.destroy();
+export function destroyChart(el: HTMLElement): void {
+	const chart = getElementState<Chart>(el, '__chartInstance');
+	if (chart) {
+		chart.destroy();
+		setElementState(el, '__chartInstance', undefined);
 	}
+}
+
+export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
+	destroyChart(el);
 
 	const color = makeColorResolver(config);
 

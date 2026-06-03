@@ -23,7 +23,7 @@ export function renderTrainingChart(
 	config: CategoriesConfig,
 	chunkConfig: TrainingsChunkConfig
 ): void {
-	destroyPrev(el);
+	destroyChart(el);
 
 	const { weeks, categories, hoursByWeekCategory } = aggregateTrainings(dailyData, config);
 	const color = makeColorResolver(config);
@@ -68,7 +68,7 @@ export function renderBodyChart(
 	_config: CategoriesConfig,
 	chunkConfig: TrainingsChunkConfig
 ): void {
-	destroyPrev(el);
+	destroyChart(el);
 
 	const { dates, series } = aggregateBody(dailyData, chunkConfig.metrics);
 
@@ -130,6 +130,14 @@ export function renderBodyChart(
 	setElementState(el, '__chartInstance', chart);
 }
 
+export function destroyChart(el: HTMLElement): void {
+	const chart = getElementState<Chart>(el, '__chartInstance');
+	if (chart) {
+		chart.destroy();
+		setElementState(el, '__chartInstance', undefined);
+	}
+}
+
 function formatDate(ts: number): string {
 	const d = new Date(ts);
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -140,9 +148,4 @@ function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement 
 	container.classList.add('cext-chart-container');
 	container.style.height = `${height}px`;
 	return container.createEl('canvas');
-}
-
-function destroyPrev(el: HTMLElement): void {
-	const prev = getElementState<Chart>(el, '__chartInstance');
-	if (prev) prev.destroy();
 }

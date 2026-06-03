@@ -1,7 +1,7 @@
-import { App, Plugin, MarkdownPostProcessorContext, TFile } from 'obsidian';
+import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile } from 'obsidian';
 import { filterCategories, parseMonths } from './parser';
 import { CategoriesConfig, parseCategories } from '../../shared/parseCategories';
-import { renderChart, renderTable } from './renderer';
+import { renderChart, renderTable, destroyChart } from './renderer';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { MonthData } from './types';
 import { getElementState, setElementState } from '../../shared/elementState';
@@ -31,10 +31,14 @@ export class FinancesModule {
 			source: string,
 			renderer: Renderer
 		) => {
-			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-			if (!(file instanceof TFile)) return;
 			if (getElementState<boolean>(el, '__financeWatched')) return;
 			setElementState(el, '__financeWatched', true);
+
+			const child = new FinancesRenderChild(el);
+			ctx.addChild(child);
+
+			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+			if (!(file instanceof TFile)) return;
 
 			const onModify = async (modifiedFile: TFile) => {
 				if (modifiedFile.path !== file.path) return;
@@ -44,8 +48,8 @@ export class FinancesModule {
 				const chunkConfig = parseChunkConfig(source);
 				renderer(el, data.months, data.config, chunkConfig);
 			};
-
-			plugin.registerEvent(this.app.vault.on('modify', onModify));
+			
+			child.registerEvent(this.app.vault.on('modify', onModify));
 		};
 
 		const registerChartBlock = (blockName: string, renderer: Renderer) => {
@@ -60,5 +64,12 @@ export class FinancesModule {
 
 		registerChartBlock('cext-finances-chart', renderChart);
 		registerChartBlock('cext-finances-table', renderTable);
+	}
+}
+
+class FinancesRenderChild extends MarkdownRenderChild {
+	onunload(): void {
+		setElementState(this.containerEl, '__financeWatched', undefined);
+		destroyChart(this.containerEl);
 	}
 }
