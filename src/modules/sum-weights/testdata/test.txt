@@ -1,0 +1,14 @@
+# Sprzęt #sum-weights
+
+- [ ] Trekking
+	- [ ] plecak Gregory Paragon 50 `1660g`
+	- [ ] kije trekkingowe (Fjord Nansen Niva)
+- [ ] Obóz
+	- [ ] namiot (Naturhike Star River 2) `2200g`
+	- [ ] śpiwór puchowy (Cumulus Panyam 450) `810g`
+- [ ] Jedzenie `4500g`
+	- [ ] liofy, mięso suszone
+
+## Luźne notatki
+
+- bez wagi, bez tagu
