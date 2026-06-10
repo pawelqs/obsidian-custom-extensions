@@ -19,7 +19,7 @@ Reload in Obsidian: Settings → Community Plugins → Disable/Enable cext, or C
 
 ## Architecture
 
-**Module structure** (each module follows the same shape):
+**Module structure**:
 ```
 src/
   main.ts                       # Plugin entry, registers all modules
@@ -30,15 +30,19 @@ src/
     elementState.ts             # Typed get/setElementState — one place for the el-state cast
     chunkConfig.ts              # Shared ChunkConfig { height } interface
   modules/<module>/
+    # core (every module):
     README.md                   # Module docs: user-facing data format + implementation notes
-    types.ts                    # Domain interfaces (module-specific only; categories config comes from shared)
-    parser.ts                   # Markdown → domain types
-    aggregator.ts               # (trainings) Domain → chart-ready aggregates
-    renderer.ts                 # Aggregates → Chart.js / Leaflet / HTML
-    index.ts                    # Module class: registers code block processors + file watcher
+    parser.ts                   # Pure markdown → domain data (testable without DOM/canvas)
     parser.test.ts              # Tests (bun:test)
-    testdata/test.txt           # Test data, imported as a plain string
+    renderer.ts                 # Thin DOM/Chart.js/Leaflet layer
+    index.ts                    # Module class: only the wiring to Obsidian APIs (processors, watchers)
+    # optional (add when needed):
+    types.ts                    # When the module has domain interfaces (categories config comes from shared)
+    aggregator.ts               # When the domain → chart-ready transform is non-trivial (e.g. trainings)
+    testdata/test.txt           # When tests need realistic input, imported as a plain string
 ```
+
+What matters is the role separation (pure parsing / data shaping / rendering / wiring), not the exact file list — sum-weights has no code block at all yet fits the same shape.
 
 **Modules** (each module's `README.md` is the source of truth for its data format, options, and implementation notes — read it before working on the module):
 - **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
@@ -78,7 +82,7 @@ Strict mode enabled. `baseUrl: src` allows clean imports.
 
 **Add category group**: Edit `## Categories` in markdown, add `**group:**` + `- name: #color`. Parser auto-detects.
 
-**Add a new module**: Mirror `src/modules/finances/`, `src/modules/trainings/`, or (for a non-chart, single-view module) `src/modules/map/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own, and `getElementState`/`setElementState` from `src/shared/elementState.ts` for any per-element state. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`. Write the module's `README.md` (description, data format, example) and add the module to the lists in this file (Quick Start + **Modules**).
+**Add a new module**: Mirror `src/modules/finances/`, `src/modules/trainings/`, or (for a non-chart, single-view module) `src/modules/map/` — core files always, optional ones only when needed (see **Module structure**). Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own, and `getElementState`/`setElementState` from `src/shared/elementState.ts` for any per-element state. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`. Write the module's `README.md` (description, data format, example) and add the module to the lists in this file (Quick Start + **Modules**).
 
 **Keep docs in sync**: when a change alters a module's user-facing format, options, or architecture, update that module's `README.md` in the same change — and CLAUDE.md if a cross-module invariant changed.
 
