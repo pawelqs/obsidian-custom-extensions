@@ -13,7 +13,7 @@ export class FinancesModule {
 		const readAndParse = async (ctx: MarkdownPostProcessorContext) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
-			const content = await this.app.vault.read(file);
+			const content = await this.app.vault.cachedRead(file);
 			const config = filterCategories(parseCategories(content));
 			const months = parseMonths(content, config);
 			return { config, months };
@@ -43,7 +43,7 @@ export class FinancesModule {
 				const chunkConfig = parseChunkConfig(source);
 				renderer(el, data.months, data.config, chunkConfig);
 			};
-			
+
 			child.registerEvent(this.app.vault.on('modify', onModify));
 		};
 

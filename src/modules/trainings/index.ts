@@ -12,7 +12,7 @@ export class TrainingsModule {
 		const readAndParse = async (ctx: MarkdownPostProcessorContext) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
-			const content = await this.app.vault.read(file);
+			const content = await this.app.vault.cachedRead(file);
 			const config = parseCategories(content);
 			const dailyData = parseDailyData(content, config);
 			return { config, dailyData };

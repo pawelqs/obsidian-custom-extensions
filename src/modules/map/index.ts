@@ -15,7 +15,7 @@ export class MapModule {
 		const readAndParse = async (ctx: MarkdownPostProcessorContext, chunkConfig: MapChunkConfig) => {
 			const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
 			if (!(file instanceof TFile)) return null;
-			const content = await this.app.vault.read(file);
+			const content = await this.app.vault.cachedRead(file);
 			const config = parseCategories(content);
 			const locations = parseLocations(content, config, chunkConfig);
 			return { file, config, locations };
