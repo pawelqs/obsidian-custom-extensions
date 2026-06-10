@@ -1,7 +1,8 @@
 import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile } from 'obsidian';
 import { filterCategories, parseMonths } from './parser';
 import { CategoriesConfig, parseCategories } from '../../shared/parseCategories';
-import { renderChart, renderTable, destroyChart } from './renderer';
+import { renderChart, renderTable } from './renderer';
+import { destroyChart } from '../../shared/chartInstance';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { MonthData } from './types';
 import { getElementState, setElementState } from '../../shared/elementState';

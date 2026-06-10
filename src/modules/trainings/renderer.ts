@@ -1,9 +1,9 @@
 import { Chart, ChartOptions, registerables } from 'chart.js';
 import { DailyData, TrainingsChunkConfig } from './types';
-import { CategoriesConfig, makeColorResolver } from '../../shared/parseCategories';
+import { CategoriesConfig, FALLBACK_PALETTE, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend } from '../../shared/colorLegend';
 import { aggregateTrainings, aggregateBody } from './aggregator';
-import { getElementState, setElementState } from '../../shared/elementState';
+import { destroyChart, setChartInstance } from '../../shared/chartInstance';
 
 Chart.register(...registerables);
 
@@ -11,11 +11,6 @@ const METRIC_COLORS: Record<string, string> = {
 	kg: '#3498db',
 	PBF: '#e67e22',
 };
-
-const METRIC_FALLBACK_COLORS = [
-	'#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
-	'#1abc9c', '#e67e22', '#e91e63', '#00bcd4', '#8bc34a',
-];
 
 export function renderTrainingChart(
 	el: HTMLElement,
@@ -59,7 +54,7 @@ export function renderTrainingChart(
 		},
 	});
 
-	setElementState(el, '__chartInstance', chart);
+	setChartInstance(el, chart);
 }
 
 export function renderBodyChart(
@@ -78,7 +73,7 @@ export function renderBodyChart(
 		data: dates
 			.map((date) => ({ x: new Date(date).getTime(), y: series[m]?.get(date) ?? null }))
 			.filter((pt): pt is { x: number; y: number } => pt.y !== null),
-		borderColor: METRIC_COLORS[m] || METRIC_FALLBACK_COLORS[i % METRIC_FALLBACK_COLORS.length],
+		borderColor: METRIC_COLORS[m] || FALLBACK_PALETTE[i % FALLBACK_PALETTE.length],
 		backgroundColor: 'transparent',
 		borderWidth: 2,
 		tension: 0.3,
@@ -127,15 +122,7 @@ export function renderBodyChart(
 		},
 	});
 
-	setElementState(el, '__chartInstance', chart);
-}
-
-export function destroyChart(el: HTMLElement): void {
-	const chart = getElementState<Chart>(el, '__chartInstance');
-	if (chart) {
-		chart.destroy();
-		setElementState(el, '__chartInstance', undefined);
-	}
+	setChartInstance(el, chart);
 }
 
 function formatDate(ts: number): string {

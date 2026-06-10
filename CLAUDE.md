@@ -28,6 +28,7 @@ src/
     parseCategories.test.ts
     colorLegend.ts              # Generic legend renderer driven by CategoriesConfig (grouped or flat)
     elementState.ts             # Typed get/setElementState — one place for the el-state cast
+    chartInstance.ts            # set/destroyChart for the Chart.js instance kept on the element; owns the '__chartInstance' key
     chunkConfig.ts              # Shared ChunkConfig { height } interface
   modules/<module>/
     # core (every module):
@@ -54,7 +55,7 @@ What matters is the role separation (pure parsing / data shaping / rendering / w
 
 **Key flow** (code-block modules; sum-weights is a post-processor instead):
 1. Module's `index.ts` registers code block processors with `plugin.registerMarkdownCodeBlockProcessor(name, handler)`.
-2. Handler reads the containing file via `app.vault.read`, parses it, hands data to renderer.
+2. Handler reads the containing file via `app.vault.cachedRead`, parses it, hands data to renderer.
 3. `vault.on('modify')` re-renders on file changes; an element-level `__<module>Watched` flag prevents duplicate listeners.
 4. Chart.js instance stored on element as `__chartInstance` (map: `__mapInstance`) and destroyed before re-create (avoids memory leak).
 

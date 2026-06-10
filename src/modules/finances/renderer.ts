@@ -3,7 +3,7 @@ import { MonthData } from './types';
 import { CategoriesConfig, ColorResolver, makeColorResolver } from '../../shared/parseCategories';
 import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 import { ChunkConfig } from '../../shared/chunkConfig';
-import { getElementState, setElementState } from '../../shared/elementState';
+import { destroyChart, setChartInstance } from '../../shared/chartInstance';
 
 const fmt = (n: number) => (n ? n.toLocaleString('pl-PL', { minimumFractionDigits: 0 }) : '');
 
@@ -82,14 +82,6 @@ export function renderTable(el: HTMLElement, months: MonthData[], config: Catego
 	}
 }
 
-export function destroyChart(el: HTMLElement): void {
-	const chart = getElementState<Chart>(el, '__chartInstance');
-	if (chart) {
-		chart.destroy();
-		setElementState(el, '__chartInstance', undefined);
-	}
-}
-
 export function renderChart(el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) {
 	destroyChart(el);
 
@@ -163,7 +155,7 @@ export function renderChart(el: HTMLElement, months: MonthData[], config: Catego
 		},
 	});
 
-	setElementState(el, '__chartInstance', newChart);
+	setChartInstance(el, newChart);
 }
 
 function createSavingsWithdrawalOverlay(months: MonthData[]): Plugin<'bar'> {

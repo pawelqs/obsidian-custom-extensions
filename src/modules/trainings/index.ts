@@ -1,6 +1,7 @@
 import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile } from 'obsidian';
 import { parseDailyData } from './parser';
-import { renderTrainingChart, renderBodyChart, destroyChart } from './renderer';
+import { renderTrainingChart, renderBodyChart } from './renderer';
+import { destroyChart } from '../../shared/chartInstance';
 import { DailyData, TrainingsChunkConfig } from './types';
 import { parseCategories, CategoriesConfig } from '../../shared/parseCategories';
 import { getElementState, setElementState } from '../../shared/elementState';
