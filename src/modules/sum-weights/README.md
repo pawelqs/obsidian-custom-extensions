@@ -25,4 +25,4 @@ The badge is the sum over the whole subtree of each first-level item; an item wi
 ## Files
 - `parser.ts` — pure helpers: `sumWeights`, `headingHasWeightTag`, `findEnclosingHeading`.
 - `renderer.ts` — `renderWeightBadges` (per first-level `<li>`) and `renderWeightTotal` (grand-total row below the list); both sum the `<code>` weights and are idempotent.
-- `index.ts` — registers the post-processor; ties the tagged heading to its list via `ctx.getSectionInfo`.
+- `index.ts` — registers the post-processor; ties the tagged heading to its list via `ctx.getSectionInfo`. A `MutationObserver` re-applies the annotations if another plugin (e.g. Tasks) rebuilds the list `<li>`s afterwards, and is torn down with the rendered section.
