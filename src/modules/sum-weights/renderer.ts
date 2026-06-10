@@ -34,10 +34,13 @@ export function renderWeightTotal(topUl: HTMLElement): void {
 }
 
 // Only weights written as inline code (`1660g`) count — plain text like `(2200g)` is ignored.
+// Cancelled items (`- [-]`, rendered as li[data-task="-"]) are excluded, including everything
+// nested under a cancelled ancestor.
 function sumCodeWeights(root: HTMLElement): number {
 	let total = 0;
 	for (const code of Array.from(root.querySelectorAll('code'))) {
 		if (code.closest('pre')) continue; // skip fenced code blocks
+		if (code.closest('li[data-task="-"]')) continue;
 		total += sumWeights(code.textContent ?? '');
 	}
 	return total;

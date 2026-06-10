@@ -10,6 +10,7 @@ There is no code block — the module is driven entirely by the heading tag and 
 ## Format
 - Tag the heading: `# Sprzęt #sum-weights`.
 - Write each weight as inline code `` `<number>g` `` (e.g. `` `2200g` ``). Only weights inside backticks count — a plain `(2200g)` in the text is ignored, so you can mention numbers freely without them being summed.
+- Cancelled items (`- [-]`) are excluded from all sums, along with everything nested under them. Checked items (`- [x]`) still count.
 
 ```markdown
 # Sprzęt #sum-weights
