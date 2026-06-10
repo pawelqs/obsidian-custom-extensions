@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Start
 
-Obsidian plugin (TypeScript, bun/esbuild) with three modules: **Finances** (markdown finance data → HTML table + Chart.js stacked bar), **Trainings** (markdown training/body data → stacked bar per-week + line chart for body metrics), and **Map** (markdown `geo:` tokens → Leaflet map with clickable inline coords).
+Obsidian plugin (TypeScript, bun/esbuild) with four modules: **Finances** (markdown finance data → HTML table + Chart.js stacked bar), **Trainings** (markdown training/body data → stacked bar per-week + line chart for body metrics), **Map** (markdown `geo:` tokens → Leaflet map with clickable inline coords), and **Sum Weights** (inline `Σ` weight subtotals on lists under a `#sum-weights` heading).
 
 ```bash
 bun run dev      # Watch mode
@@ -30,6 +30,7 @@ src/
     elementState.ts             # Typed get/setElementState — one place for the el-state cast
     chunkConfig.ts              # Shared ChunkConfig { height } interface
   modules/<module>/
+    README.md                   # Module docs: user-facing data format + implementation notes
     types.ts                    # Domain interfaces (module-specific only; categories config comes from shared)
     parser.ts                   # Markdown → domain types
     aggregator.ts               # (trainings) Domain → chart-ready aggregates
@@ -39,78 +40,35 @@ src/
     testdata/test.txt           # Test data, imported as a plain string
 ```
 
-**Modules**:
-- **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` (with `**group:**` markers) and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
+**Modules** (each module's `README.md` is the source of truth for its data format, options, and implementation notes — read it before working on the module):
+- **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
 - **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
-- **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: lat, lon[, key: value …]` `` tokens (headings or list items) and drops a colored marker per location; category color comes from the shared `## Categories`/`## Kategorie` block. The token tail (parsed by `parseGeo`/`parseTail`) accepts two equivalent forms in any order: terse sigils `#category @route#seq` (space-separated, no spaces in names) or verbose `cat:`/`route:` pairs (comma-separated, names may contain spaces). A route value is `name#seq` (e.g. `@day1#2` or `route: day1#2`), where the `#seq` suffix sets the ordering. Points with both `route` and `seq` are grouped by `buildRoutes` (parser.ts, pure + tested) into ordered `MapRoute`s and rendered as a polyline with numbered `divIcon` markers and direction arrows (rotated `divIcon` at each segment midpoint — no extra Leaflet plugin); route color comes from the same shared color resolver (key = route name). The fenced block config (`parseChunkConfig` → `MapChunkConfig`) takes `height: <px>` and a read-time flag `no-implicit-categories`, the latter passed into `parseLocations` — when set, a location's category comes only from an explicit `cat:`/`#tag`, never inherited from the nearest heading (so uncategorized points render in `UNCATEGORIZED_COLOR` and stay out of the legend). That flag affects parsing only; `renderMap` receives it as part of the config but ignores it. Also marks matching inline `geo:` tokens elsewhere in the note as clickable links (`.cext-coords-link`) that recenter the map via a `cext-map-fly` CustomEvent. Has no `aggregator.ts` (parser → renderer directly; `buildRoutes` lives in parser.ts).
+- **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: …` `` tokens, drops a colored marker per location, connects route points into polylines, and turns inline geo tokens into click-to-recenter links. No `aggregator.ts` (parser → renderer directly).
+- **sum-weights** — no code block: a Markdown post-processor (`registerMarkdownPostProcessor`). When a heading carries `#sum-weights`/`#suma-wag`, list items under it get inline `Σ <n>g` subtotal badges plus a grand-total row. The exception to the code-block pattern below.
 
 **Code block naming**: `cext-<module>-<view>` — e.g. `cext-finances-chart`, `cext-finances-table`, `cext-trainings-chart`, `cext-trainings-body`. Single-view modules drop the `-<view>` suffix (`cext-map`). The `cext-` prefix scopes to this plugin and avoids collisions with other plugins' processors.
 
-**Key flow**:
+**Key flow** (code-block modules; sum-weights is a post-processor instead):
 1. Module's `index.ts` registers code block processors with `plugin.registerMarkdownCodeBlockProcessor(name, handler)`.
 2. Handler reads the containing file via `app.vault.read`, parses it, hands data to renderer.
-3. `vault.on('modify')` re-renders on file changes; an element-level flag (`__financeWatched` / `__trainingsWatched` / `__mapWatched`) prevents duplicate listeners.
+3. `vault.on('modify')` re-renders on file changes; an element-level `__<module>Watched` flag prevents duplicate listeners.
 4. Chart.js instance stored on element as `__chartInstance` (map: `__mapInstance`) and destroyed before re-create (avoids memory leak).
 
 **Element state**: transient per-element state (chart/map instances, watcher flags, observers) is read/written via `getElementState<T>(el, key)` / `setElementState(el, key, value)` from `src/shared/elementState.ts` — one typed cast in one place instead of `(el as any).__whatever` scattered across renderers. Use these rather than direct property access.
 
 **Map lifecycle**: unlike finances/trainings (which rely on the `__*Watched` flag + `vault.on('modify')`), the map module ties cleanup to a `MarkdownRenderChild` added via `ctx.addChild`. Its `onunload` (fired when the note closes or the section re-renders) disconnects the `MutationObserver`, clears the state flags, and calls `destroyMap`. The modify-listener is registered on the child via `child.registerEvent`, and the click-to-recenter handler is one delegated `registerDomEvent(document, 'click', …)` for all geo tokens.
 
-**Shared categories parser**: All three modules call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The parser is generic — no module-specific post-processing.
+**Shared categories parser**: finances, trainings, and map call `parseCategories` from `src/shared/parseCategories.ts`. It scans for `## Categories` or `## Kategorie` (override with `{ headings: [...] }`), reads `**group:**` markers and `- name: #color` lines, and returns `CategoriesConfig` (`colorsMap`, `groupCats`, `groupOrder`). The parser is generic — no module-specific post-processing.
 
 **Shared color resolver**: `parseCategories.ts` also exports `makeColorResolver(config): ColorResolver` — a *stateful* factory. Returned function looks up `colorsMap[key]` first; for unknown keys it assigns the next color from `FALLBACK_PALETTE` and caches it (same unknown key returns the same color on repeat calls within one resolver instance). Use **one resolver per render** and share it between legend + datasets so colors stay consistent across legend and chart.
 
 **Shared color legend**: `src/shared/colorLegend.ts` exports `renderColorLegend(config, resolver?)` — returns a legend `HTMLElement`. If `groupOrder` is non-empty it draws one section per group; otherwise it draws a single flat section from `colorsMap`. Pass the same resolver instance you use for chart datasets to keep colors aligned. Also exports `renderLegendSection(items, title?)` and `renderLegendItem(label, color)` as building blocks so modules can append extra sections/items (e.g. finances appends `other`/`savings`/`net income` after the generic legend; map builds its legend from the categories actually present on the map).
 
-**Finances post-processing**: `finances/parser.ts` exports `filterCategories(config)` which drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors. The `**special:**` group holds `savings`, `net income`, and `other` — labels that the renderer draws as their own datasets (own bar, line overlay, "unallocated income" bar), so they must not be re-rendered as regular categories. `finances/index.ts` composes: `filterCategories(parseCategories(content))`.
-
-**Finances parser detail** (`parseMonths`): Dynamically detects list indentation (first `-` after section), expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures. Negative values are supported (e.g. `savings: -200` means a withdrawal). The chart renders a red overlay box on the net income line to indicate the withdrawal amount.
+**Module-specific post-processing of categories**: a module may wrap `parseCategories` when it needs to adjust the generic result — the model is `finances/parser.ts` `filterCategories(config)`, which drops the `**special:**` group (labels the chart draws as derived datasets) from `groupCats`/`groupOrder` while keeping its colors; `finances/index.ts` composes `filterCategories(parseCategories(content))`.
 
 ## Data Format
 
-```markdown
-## Categories
-```
-**must:**
-- mieszkanie: #1f77b4
-**wants:**
-- transport: #55d4e0
-**inne:**
-- relacje: #cc5aaa
-**special:**
-- savings:    #2ca02c
-- net income: #2ca02c
-- other:      #b0b0b0
-```
-
-The `**special:**` group is finances-only convention: holds labels that the chart renders as derived datasets (savings bar, net income line, "other" = unallocated income). They need a color defined here but are dropped from regular `cats`/`groupCats` by `filterCategories` (otherwise they'd be drawn twice).
-
-### 2026-05
-- income:
-  - wynagrodzenie: 1000
-- taxes:
-  - PIT: 100
-- savings:
-  - ETF: 100         # positive: money saved
-  - konto: -200      # negative: withdrawal from savings
-- expenses:
-  - mieszkanie: 100
-  - transport:
-    - paliwo: 50
-```
-
-**Map** — geo tokens anywhere in the note (heading or list item); the name is the text before the token. The tail is optional and comes in two equivalent forms: terse sigils `#category @route#seq` (no spaces in names) or verbose `cat:`/`route:` pairs (names may contain spaces). Category falls back to the nearest preceding heading.
-
-```markdown
-## Italy
-- Roma `geo: 41.9028, 12.4964 #city`              # sigil form
-- Vesuvio `geo: 40.821, 14.426, cat: nature`      # verbose form
-- Rynek `geo: 50.06, 19.94, cat: stare miasto`    # verbose allows spaces in the name
-
-## Day trip          # points sharing a route connect in seq order
-- Stop 1 `geo: 41.9028, 12.4964 @day1#1`
-- Stop 2 `geo: 41.890, 12.492 @day1#2`
-```
+User-facing data formats and examples live in each module's `README.md` (`src/modules/<module>/README.md`) — that's the single source of truth; don't duplicate them here.
 
 ## TypeScript
 
@@ -120,7 +78,9 @@ Strict mode enabled. `baseUrl: src` allows clean imports.
 
 **Add category group**: Edit `## Categories` in markdown, add `**group:**` + `- name: #color`. Parser auto-detects.
 
-**Add a new module**: Mirror `src/modules/finances/`, `src/modules/trainings/`, or (for a non-chart, single-view module) `src/modules/map/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own, and `getElementState`/`setElementState` from `src/shared/elementState.ts` for any per-element state. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`.
+**Add a new module**: Mirror `src/modules/finances/`, `src/modules/trainings/`, or (for a non-chart, single-view module) `src/modules/map/` — same file shape. Import `parseCategories` and `CategoriesConfig` from `src/shared/parseCategories.ts` rather than defining your own, and `getElementState`/`setElementState` from `src/shared/elementState.ts` for any per-element state. Add module-specific post-processing (analogous to `filterCategories`) only when needed. Register the module class in `src/main.ts` `onload()`. Write the module's `README.md` (description, data format, example) and add the module to the lists in this file (Quick Start + **Modules**).
+
+**Keep docs in sync**: when a change alters a module's user-facing format, options, or architecture, update that module's `README.md` in the same change — and CLAUDE.md if a cross-module invariant changed.
 
 ## Conventions
 

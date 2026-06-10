@@ -3,6 +3,11 @@
 ## Description
 Manages finances in Obsidian — renders monthly data (income, taxes, savings, expenses) as an HTML table (`cext-finances-table`) and a stacked bar chart (`cext-finances-chart`). The `**special:**` category group (savings / net income / other) holds the colors of labels the chart draws as their own series, so they aren't rendered as regular categories.
 
+## Implementation notes
+- `filterCategories(config)` (parser.ts) drops the `**special:**` group from `groupCats`/`groupOrder` while keeping its colors — those labels are drawn as derived datasets (savings bar, net income line, "other" = unallocated income), so they must not be re-rendered as regular categories. `index.ts` composes `filterCategories(parseCategories(content))`.
+- `parseMonths` dynamically detects list indentation (first `-` after a section) and expects nested items at `itemIndent + 4` spaces. Handles tabs, multi-value items (`item 100, other 200`), and nested structures.
+- Negative values are supported (`savings: -200` = withdrawal); the chart renders a red overlay box on the net income line for the withdrawal amount.
+
 ## Example
 A complete note: the render blocks (optional `height` in pixels), the `## Categories` color definitions, and sample monthly data.
 
