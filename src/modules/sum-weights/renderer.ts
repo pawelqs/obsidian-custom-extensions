@@ -51,6 +51,20 @@ export function sumCodeWeights(root: HTMLElement): number {
 	return total;
 }
 
+// Weights written directly on this item — codes nested in child <li>s don't count,
+// so summing ownCodeWeights over a subtree never counts a token twice. Cancelled
+// items (or items under a cancelled ancestor) count as 0.
+export function ownCodeWeights(li: HTMLElement): number {
+	let total = 0;
+	for (const code of Array.from(li.querySelectorAll('code'))) {
+		if (code.closest('pre')) continue;
+		if (code.closest('li') !== li) continue;
+		if (code.closest('li[data-task="-"]')) continue;
+		total += sumWeights(code.textContent ?? '');
+	}
+	return total;
+}
+
 /** The item's own text: nested list, the Σ badge, and the weight tokens themselves stripped. */
 export function itemOwnText(li: HTMLElement): string {
 	const clone = li.cloneNode(true) as HTMLElement;

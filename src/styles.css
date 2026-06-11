@@ -54,9 +54,22 @@
 	text-decoration: underline;
 }
 
+.cext-weights-modal-body {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.cext-weights-modal-body .cext-legend-container {
+	margin-bottom: 0;
+	flex-shrink: 0;
+}
+
 .cext-weights-modal-chart {
 	position: relative;
 	height: 320px;
+	flex: 1;
+	min-width: 0;
 }
 
 .cext-sum-weights {
