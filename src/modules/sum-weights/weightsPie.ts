@@ -1,7 +1,7 @@
 import { App, Modal } from 'obsidian';
 import { Chart, registerables } from 'chart.js';
-import { FALLBACK_PALETTE } from '../../shared/parseCategories';
-import { renderColorLegend } from '../../shared/colorLegend';
+import { makeColorResolver } from '../../shared/parseCategories';
+import { renderLegendSection } from '../../shared/colorLegend';
 import { findTopUl, itemOwnText, ownCodeWeights } from './renderer';
 
 Chart.register(...registerables);
@@ -16,6 +16,9 @@ interface CategoryWeights {
 	total: number;
 	items: WeightSlice[];
 }
+
+// Label for items whose whole text is the weight token itself (itemOwnText strips it).
+const UNNAMED = '(unnamed)';
 
 /** Pie of every weighted item in the section's list, colored by top-level category. */
 export function openWeightsPie(app: App, title: string, sectionEl: HTMLElement): void {
@@ -36,13 +39,13 @@ function collectCategoryWeights(topUl: HTMLElement): CategoryWeights[] {
 		const items: WeightSlice[] = [];
 		for (const itemLi of [li, ...Array.from(li.querySelectorAll('li'))]) {
 			const grams = ownCodeWeights(itemLi);
-			if (grams > 0) items.push({ label: itemOwnText(itemLi), grams });
+			if (grams > 0) items.push({ label: itemOwnText(itemLi) || UNNAMED, grams });
 		}
 		if (items.length === 0) continue;
 
 		items.sort((a, b) => b.grams - a.grams);
 		const total = items.reduce((sum, item) => sum + item.grams, 0);
-		categories.push({ category: itemOwnText(li), total, items });
+		categories.push({ category: itemOwnText(li) || UNNAMED, total, items });
 	}
 	return categories.sort((a, b) => b.total - a.total);
 }
@@ -57,30 +60,26 @@ class WeightsPieModal extends Modal {
 	onOpen(): void {
 		this.titleEl.setText(this.title || '');
 
-		const categoryColors: Record<string, string> = {};
-		this.categories.forEach((cat, i) => {
-			categoryColors[cat.category] = FALLBACK_PALETTE[i % FALLBACK_PALETTE.length] || '#aaaaaa';
-		});
+		// One resolver shared by legend and slices, so categories keep one color in both.
+		const color = makeColorResolver({ colorsMap: {}, groupCats: {}, groupOrder: [] });
 
 		const body = this.contentEl.createEl('div');
 		body.classList.add('cext-weights-modal-body');
 		const container = body.createEl('div');
 		container.classList.add('cext-weights-modal-chart');
 		const canvas = container.createEl('canvas');
-		// Grouped mode renders the legend as a titled column (flat mode would wrap horizontally).
-		body.appendChild(
-			renderColorLegend({
-				colorsMap: categoryColors,
-				groupCats: { Categories: Object.keys(categoryColors) },
-				groupOrder: ['Categories'],
-			})
+		const legend = renderLegendSection(
+			this.categories.map((cat) => ({ label: cat.category, color: color(cat.category) })),
+			'Categories'
 		);
+		legend.classList.add('cext-weights-modal-legend');
+		body.appendChild(legend);
 
 		const slices = this.categories.flatMap((cat) =>
 			cat.items.map((item, j) => ({
 				label: item.label,
 				grams: item.grams,
-				color: lighten(categoryColors[cat.category] ?? '#aaaaaa', Math.min(0.6, j * 0.15)),
+				color: lighten(color(cat.category), Math.min(0.6, j * 0.15)),
 			}))
 		);
 		const total = slices.reduce((sum, slice) => sum + slice.grams, 0);

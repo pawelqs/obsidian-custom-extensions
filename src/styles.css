@@ -60,8 +60,7 @@
 	gap: 24px;
 }
 
-.cext-weights-modal-body .cext-legend-container {
-	margin-bottom: 0;
+.cext-weights-modal-legend {
 	flex-shrink: 0;
 }
 
