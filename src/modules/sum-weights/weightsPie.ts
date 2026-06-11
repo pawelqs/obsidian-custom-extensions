@@ -91,6 +91,7 @@ class WeightsPieModal extends Modal {
 				datasets: [{
 					data: slices.map((slice) => slice.grams),
 					backgroundColor: slices.map((slice) => slice.color),
+					borderWidth: 1,
 				}],
 			},
 			options: {
