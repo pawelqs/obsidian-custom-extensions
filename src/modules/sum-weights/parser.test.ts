@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { sumWeights, headingHasWeightTag, findEnclosingHeading } from './parser';
+import { sumWeights, headingHasWeightTag, headingTitle, findEnclosingHeading } from './parser';
 import testData from './testdata/test.txt';
 
 describe('sumWeights', () => {
@@ -32,6 +32,21 @@ describe('headingHasWeightTag', () => {
 
 	test('does not match a tag that is only a prefix', () => {
 		expect(headingHasWeightTag('# Sprzęt #suma-wagi-plecaka')).toBe(false);
+	});
+});
+
+describe('headingTitle', () => {
+	test('strips heading markers and the weight tag', () => {
+		expect(headingTitle('# Sprzęt #sum-weights')).toBe('Sprzęt');
+		expect(headingTitle('## Plecak na lato #suma-wag')).toBe('Plecak na lato');
+	});
+
+	test('keeps other tags', () => {
+		expect(headingTitle('# Sprzęt #gory #sum-weights')).toBe('Sprzęt #gory');
+	});
+
+	test('empty when the heading is only the tag', () => {
+		expect(headingTitle('# #sum-weights')).toBe('');
 	});
 });
 

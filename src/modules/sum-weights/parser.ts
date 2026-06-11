@@ -19,6 +19,16 @@ export function headingHasWeightTag(headingLine: string): boolean {
 	return WEIGHT_TAGS.some((tag) => words.includes(tag));
 }
 
+/** Heading text without the leading #'s and the weight tags, e.g. '# Sprzęt #sum-weights' → 'Sprzęt'. */
+export function headingTitle(headingLine: string): string {
+	return headingLine
+		.replace(HEADING_RE, '')
+		.split(/\s+/)
+		.filter((word) => !WEIGHT_TAGS.includes(word))
+		.join(' ')
+		.trim();
+}
+
 /** Nearest heading line at or above `beforeLine` (exclusive), or null. */
 export function findEnclosingHeading(lines: string[], beforeLine: number): string | null {
 	for (let i = beforeLine - 1; i >= 0; i--) {

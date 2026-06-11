@@ -46,6 +46,19 @@
 	color: var(--text-normal);
 }
 
+.cext-sum-weights-total--clickable {
+	cursor: pointer;
+}
+
+.cext-sum-weights-total--clickable:hover {
+	text-decoration: underline;
+}
+
+.cext-weights-modal-chart {
+	position: relative;
+	height: 320px;
+}
+
 .cext-sum-weights {
 	margin-left: 8px;
 	padding: 0 6px;

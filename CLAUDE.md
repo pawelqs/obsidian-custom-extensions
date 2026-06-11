@@ -40,6 +40,7 @@ src/
     # optional (add when needed):
     types.ts                    # When the module has domain interfaces (categories config comes from shared)
     aggregator.ts               # When the domain → chart-ready transform is non-trivial (e.g. trainings)
+    <feature>.ts                # Self-contained sub-feature behind one exported entry point (e.g. sum-weights' weightsPie.ts, annotationsWatcher.ts)
     testdata/test.txt           # When tests need realistic input, imported as a plain string
 ```
 
@@ -99,6 +100,11 @@ Exception: when the imperative version is genuinely clearer (e.g. nested aggrega
 
 ### Separation of data shaping vs rendering
 Rendering functions should be thin Chart.js layers. Extract data transforms into a sibling file (e.g. `aggregator.ts`) so they're testable without a canvas and the render call reads top-to-bottom as "take aggregate → hand to Chart.js."
+
+### Self-contained feature files
+A sub-feature inside a module gets its own file behind a single exported entry-point function; everything else in the file (helper classes, internal functions) stays unexported. Models in sum-weights: `weightsPie.ts` — exports only `openWeightsPie(app, title, sectionEl)`, which gathers its own data and opens the private `WeightsPieModal`; `annotationsWatcher.ts` — exports only `annotateAndWatch(el, ctx, onTotalClick)` and owns the whole re-apply lifecycle (MutationObserver, debounce, `MarkdownRenderChild` teardown, its element-state keys). Lifecycle machinery counts as a feature too — it should not accumulate in `index.ts`. `index.ts` stays pure wiring: gates plus one-liner handlers delegating to feature files (sum-weights' `index.ts` is the model). A feature can then be added, replaced, or removed by touching one file plus one import.
+
+Corollary — no parameter drilling: don't thread raw dependencies (`app`, `title`, config) through intermediate functions just to assemble a callback at the bottom of the call chain. Build the callback at the level that already has the dependencies and pass the ready function down; intermediate functions take exactly what they use.
 
 ### Comments and docs
 - Default to no comments. Only add when *why* is non-obvious.
