@@ -1,8 +1,8 @@
 import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile } from 'obsidian';
 import { filterCategories, parseMonths } from './parser';
 import { CategoriesConfig, parseCategories } from '../../shared/parseCategories';
-import { renderChart, renderTable } from './renderer';
-import { destroyChart } from '../../shared/chartInstance';
+import { renderTable } from './table';
+import { destroyFinancesChart, renderFinancesChart } from './chartTabs';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { MonthData } from './types';
 import { getElementState, setElementState } from '../../shared/elementState';
@@ -20,7 +20,12 @@ export class FinancesModule {
 			return { config, months };
 		};
 
-		type Renderer = (el: HTMLElement, months: MonthData[], config: CategoriesConfig, chunkConfig: ChunkConfig) => void;
+		type Renderer = (
+			el: HTMLElement,
+			months: MonthData[],
+			config: CategoriesConfig,
+			chunkConfig: ChunkConfig
+		) => void;
 		const setupRerender = (
 			el: HTMLElement,
 			ctx: MarkdownPostProcessorContext,
@@ -58,7 +63,7 @@ export class FinancesModule {
 			});
 		};
 
-		registerChartBlock('cext-finances-chart', renderChart);
+		registerChartBlock('cext-finances-chart', renderFinancesChart);
 		registerChartBlock('cext-finances-table', renderTable);
 	}
 }
@@ -66,7 +71,7 @@ export class FinancesModule {
 class FinancesRenderChild extends MarkdownRenderChild {
 	onunload(): void {
 		setElementState(this.containerEl, '__financeWatched', undefined);
-		destroyChart(this.containerEl);
+		destroyFinancesChart(this.containerEl);
 	}
 }
 

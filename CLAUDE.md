@@ -31,23 +31,23 @@ src/
     chartInstance.ts            # set/destroyChart for the Chart.js instance kept on the element; owns the '__chartInstance' key
     chunkConfig.ts              # Shared ChunkConfig { height } interface
   modules/<module>/
-    # core (every module):
+    # almost always present:
     README.md                   # Module docs: user-facing data format + implementation notes
     parser.ts                   # Pure markdown → domain data (testable without DOM/canvas)
     parser.test.ts              # Tests (bun:test)
-    renderer.ts                 # Thin DOM/Chart.js/Leaflet layer
     index.ts                    # Module class: only the wiring to Obsidian APIs (processors, watchers)
-    # optional (add when needed):
+    # the rest is per-module — add whatever files fit the module's shape:
+    renderer.ts                 # Thin DOM/Chart.js/Leaflet layer, when one render function covers the module
     types.ts                    # When the module has domain interfaces (categories config comes from shared)
-    aggregator.ts               # When the domain → chart-ready transform is non-trivial (e.g. trainings)
-    <feature>.ts                # Self-contained sub-feature behind one exported entry point (e.g. sum-weights' weightsPie.ts, annotationsWatcher.ts)
+    <view>.ts                   # When a module has multiple independent chart views, one file per view can hold both its data shaping and its rendering (e.g. finances' plotMonth.ts/plotYear.ts) instead of forcing a shared renderer.ts + aggregator.ts split
+    <feature>.ts                # Self-contained sub-feature behind one exported entry point (e.g. sum-weights' weightsPie.ts, annotationsWatcher.ts, finances' chartTabs.ts)
     testdata/test.txt           # When tests need realistic input, imported as a plain string
 ```
 
-What matters is the role separation (pure parsing / data shaping / rendering / wiring), not the exact file list — sum-weights has no code block at all yet fits the same shape.
+What matters is the role separation (pure parsing / wiring stay separate from rendering and from each other), not a fixed file list. Each module picks the split that fits its own shape — parser.ts and index.ts are the only files every module is expected to have; everything else (one renderer vs. several view-specific files, a shared aggregator vs. data shaping inlined per view) is a per-module choice. sum-weights has no code block at all and finances splits its chart into `plotMonth.ts`/`plotYear.ts` instead of one `renderer.ts` — both still fit the same role separation.
 
 **Modules** (each module's `README.md` is the source of truth for its data format, options, and implementation notes — read it before working on the module):
-- **finances** — code blocks `cext-finances-chart` (stacked bar) and `cext-finances-table` (HTML table). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
+- **finances** — code blocks `cext-finances-chart` (tabbed: monthly stacked bar in `plotMonth.ts`, year-summary horizontal bar in `plotYear.ts`, tab switching owned by `chartTabs.ts`) and `cext-finances-table` (HTML table, `table.ts`). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
 - **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
 - **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: …` `` tokens, drops a colored marker per location, connects route points into polylines, and turns inline geo tokens into click-to-recenter links. No `aggregator.ts` (parser → renderer directly).
 - **sum-weights** — no code block: a Markdown post-processor (`registerMarkdownPostProcessor`). When a heading carries `#sum-weights`/`#suma-wag`, list items under it get inline `Σ <n>g` subtotal badges plus a grand-total row. The exception to the code-block pattern below.
@@ -99,7 +99,7 @@ Prefer functions that take input and return a value over functions that mutate t
 Exception: when the imperative version is genuinely clearer (e.g. nested aggregation with a local accumulator), keep it — but isolate the mutation in a small scope.
 
 ### Separation of data shaping vs rendering
-Rendering functions should be thin Chart.js layers. Extract data transforms into a sibling file (e.g. `aggregator.ts`) so they're testable without a canvas and the render call reads top-to-bottom as "take aggregate → hand to Chart.js."
+Keep the data transform separable from the Chart.js calls — as its own exported function, testable without a canvas — even when it lives in the same file as the render call. Whether that function sits in a shared `aggregator.ts` (trainings: one transform feeds one renderer) or alongside its one render function in a view-specific file (finances: `plotYear.ts` exports both `aggregateYearSummary` and `renderYearSummary`) is a per-module call — pick whichever keeps the render call reading top-to-bottom as "take aggregate → hand to Chart.js" without forcing an extra file for a module that doesn't need one.
 
 ### Self-contained feature files
 A sub-feature inside a module gets its own file behind a single exported entry-point function; everything else in the file (helper classes, internal functions) stays unexported. Models in sum-weights: `weightsPie.ts` — exports only `openWeightsPie(app, title, sectionEl)`, which gathers its own data and opens the private `WeightsPieModal`; `annotationsWatcher.ts` — exports only `annotateAndWatch(el, ctx, onTotalClick)` and owns the whole re-apply lifecycle (MutationObserver, debounce, `MarkdownRenderChild` teardown, its element-state keys). Lifecycle machinery counts as a feature too — it should not accumulate in `index.ts`. `index.ts` stays pure wiring: gates plus one-liner handlers delegating to feature files (sum-weights' `index.ts` is the model). A feature can then be added, replaced, or removed by touching one file plus one import.

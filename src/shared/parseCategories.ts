@@ -74,6 +74,10 @@ export function parseCategories(content: string, options?: ParseOptions): Catego
 	return { colorsMap, groupCats, groupOrder };
 }
 
+export function getAllCategories(config: CategoriesConfig): string[] {
+	return Object.values(config.groupCats).flat();
+}
+
 export function makeColorResolver(config: CategoriesConfig): ColorResolver {
 	let idx = 0;
 	const assigned: Record<string, string> = {};

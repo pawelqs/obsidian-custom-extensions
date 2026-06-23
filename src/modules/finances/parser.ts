@@ -1,5 +1,5 @@
 import { MonthData } from './types';
-import { CategoriesConfig } from '../../shared/parseCategories';
+import { CategoriesConfig, getAllCategories } from '../../shared/parseCategories';
 
 function parseValue(str: string): number | null {
 	str = str.trim();
@@ -24,7 +24,7 @@ export function filterCategories(config: CategoriesConfig): CategoriesConfig {
 }
 
 export function parseMonths(content: string, config: CategoriesConfig): MonthData[] {
-	const allCats = Object.values(config.groupCats).flat();
+	const allCats = getAllCategories(config);
 	const lines = content.split('\n');
 	const months: MonthData[] = [];
 	let current: MonthData | null = null;                                     // Aktualnie parsowany miesiąc
