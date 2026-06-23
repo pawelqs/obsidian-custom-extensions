@@ -28,22 +28,39 @@ const months: MonthData[] = [
 		expenses: 300,
 		cats: { housing: 200, transport: 100 },
 	},
+	{
+		id: '2026-03',
+		label: '2026-03',
+		income: 500,
+		taxes: 100,
+		savings: 100,
+		expenses: 300,
+		cats: { housing: 200, transport: 100 },
+	},
 ];
 
+const now = new Date('2026-02-15');
+
 describe('aggregateYearSummary', () => {
-	it('sums each category across all months, sorted descending', () => {
-		const entries = aggregateYearSummary(months, config);
+	it('sums each category across all months, sorted descending by total', () => {
+		const entries = aggregateYearSummary(months, config, now);
 		expect(entries).toEqual([
-			{ label: 'housing', value: 400 },
-			{ label: 'transport', value: 200 },
-			{ label: 'savings', value: 50 },
-			{ label: 'other', value: 0 },
+			{ label: 'housing', pastValue: 200, currentValue: 400 },
+			{ label: 'transport', pastValue: 100, currentValue: 200 },
+			{ label: 'savings', pastValue: 100, currentValue: 50 },
+			{ label: 'other', pastValue: 0, currentValue: 0 },
 		]);
 	});
 
+	it('splits past months (before the reference date) from the current and future ones', () => {
+		const entries = aggregateYearSummary(months, config, now);
+		const housing = entries.find((e) => e.label === 'housing');
+		expect(housing).toEqual({ label: 'housing', pastValue: 200, currentValue: 400 });
+	});
+
 	it('nets negative savings months into the total instead of clamping them', () => {
-		const entries = aggregateYearSummary(months, config);
+		const entries = aggregateYearSummary(months, config, now);
 		const savings = entries.find((e) => e.label === 'savings');
-		expect(savings?.value).toBe(50);
+		expect((savings?.pastValue ?? 0) + (savings?.currentValue ?? 0)).toBe(150);
 	});
 });
