@@ -163,8 +163,10 @@ function renderYearPie(
 	sortMode: YearSortMode,
 	color: ColorResolver
 ): Chart {
-	el.appendChild(renderPieLegend(config, color));
-	const canvas = createChartCanvas(el, chunkConfig.height);
+	const body = el.createEl('div');
+	body.classList.add('cext-pie-body');
+	const canvas = createChartCanvas(body, chunkConfig.height);
+	body.appendChild(renderPieLegend(config, color));
 
 	// Each category becomes an actuals slice (base color); in 'total' mode the
 	// forecast is a second adjacent slice in a lighter shade, like the bar's split.

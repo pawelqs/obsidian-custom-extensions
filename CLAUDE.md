@@ -121,7 +121,9 @@ Don't carry data that can be derived from another field. Example: a flat `cats: 
 Prefer descriptive names that say what the value *is*, not how it's built. `dailyData: DailyData[]` reads better than `days: DayData[]`; `aggregateTrainings` reads better than `aggregateByWeek`. The cost of a rename is one find/replace; the cost of a cryptic name compounds with every reader.
 
 ### Styling
-Static CSS goes in `styles.css` under `.cext-*` prefixed classes (e.g. `.cext-chart-container`, `.cext-table`, `.cext-legend-*`); apply via `el.classList.add(...)`. Inline styles only for dynamic values that change per-render (e.g. `container.style.height = '${height}px'` where height comes from the code block config). Don't sprinkle inline `border`/`padding`/`fontWeight` — move it to a class.
+Static CSS goes under `.cext-*` prefixed classes; apply via `el.classList.add(...)`. Inline styles only for dynamic values that change per-render (e.g. `container.style.height = '${height}px'` where height comes from the code block config). Don't sprinkle inline `border`/`padding`/`fontWeight` — move it to a class.
+
+CSS can be split per module. Obsidian loads only the single root `styles.css`, but esbuild bundles `src/styles.css` (a `bundle: true` entry point), so module-specific rules live in `src/modules/<module>/<module>.css` and are pulled in via an `@import` at the top of `src/styles.css` (all `@import`s must precede any rule). Shared classes used by more than one module — legend (`.cext-legend-*`), tabs (`.cext-tabs`/`.cext-tab`, the `tabBar` component), `.cext-chart-container` — stay in `src/styles.css`. Currently only **finances** is split out (`modules/finances/finances.css`: `.cext-table*`, `.cext-year-controls`, `.cext-pie-body*`); other modules' rules still live in `src/styles.css`.
 
 ## Testing
 

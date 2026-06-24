@@ -1,4 +1,5 @@
 @import 'leaflet/dist/leaflet.css';
+@import './modules/finances/finances.css';
 
 .cext-legend-container {
 	display: flex;
@@ -45,12 +46,6 @@
 	justify-content: center;
 	gap: 4px;
 	margin-bottom: 12px;
-}
-
-.cext-year-controls {
-	display: flex;
-	justify-content: center;
-	gap: 24px;
 }
 
 button.cext-tab {
@@ -111,25 +106,6 @@ button.cext-tab-active {
 	font-weight: 600;
 	color: var(--text-muted);
 	background: var(--background-modifier-border);
-}
-
-.cext-table {
-	width: 100%;
-	border-collapse: collapse;
-}
-
-.cext-table th,
-.cext-table td {
-	border: 1px solid #ddd;
-	padding: 8px;
-}
-
-.cext-table th {
-	text-align: left;
-}
-
-.cext-table tr.cext-table-total td {
-	font-weight: bold;
 }
 
 .cext-map-container {

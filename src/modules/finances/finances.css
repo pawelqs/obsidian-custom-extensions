@@ -1,0 +1,46 @@
+/* Finances module styles. Bundled into the plugin's single styles.css via an
+   @import in src/styles.css. Shared .cext-* classes (legend, tabs, chart
+   container) live in src/styles.css. */
+
+.cext-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.cext-table th,
+.cext-table td {
+	border: 1px solid #ddd;
+	padding: 8px;
+}
+
+.cext-table th {
+	text-align: left;
+}
+
+.cext-table tr.cext-table-total td {
+	font-weight: bold;
+}
+
+.cext-year-controls {
+	display: flex;
+	justify-content: center;
+	gap: 24px;
+}
+
+.cext-pie-body {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.cext-pie-body > .cext-chart-container {
+	flex: 1;
+	min-width: 0;
+}
+
+.cext-pie-body > .cext-legend-container {
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 0;
+	flex-shrink: 0;
+}
