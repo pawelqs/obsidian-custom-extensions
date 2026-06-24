@@ -15,11 +15,6 @@ const FUTURE_LIGHTEN = 0.60;
 export type YearSortMode = 'actuals' | 'total';
 export type YearChartType = 'bar' | 'pie';
 
-export const SORT_MODE_LABELS: Record<YearSortMode, string> = {
-	actuals: 'Aktualne',
-	total: 'Aktualne + prognoza',
-};
-
 const CHART_TYPE_LABELS: Record<YearChartType, string> = {
 	bar: 'Słupki',
 	pie: 'Kołowy',
@@ -103,8 +98,8 @@ export function renderYearView(
 	renderTabBar(controls, CHART_TYPE_LABELS, settings.yearChartType, (yearChartType) =>
 		onSettingsChange({ yearChartType })
 	);
-	renderTabBar(controls, SORT_MODE_LABELS, settings.yearSortMode, (yearSortMode) =>
-		onSettingsChange({ yearSortMode })
+	renderForecastToggle(controls, settings.yearSortMode === 'total', (withForecast) =>
+		onSettingsChange({ yearSortMode: withForecast ? 'total' : 'actuals' })
 	);
 
 	const color = makeColorResolver(config);
@@ -116,6 +111,16 @@ export function renderYearView(
 			: renderYearPie(el, entries, config, chunkConfig, settings.yearSortMode, color);
 
 	setChartInstance(el, chart);
+}
+
+function renderForecastToggle(parent: HTMLElement, checked: boolean, onChange: (checked: boolean) => void): void {
+	const label = parent.createEl('label');
+	label.classList.add('cext-forecast-toggle');
+	const checkbox = label.createEl('input');
+	checkbox.type = 'checkbox';
+	checkbox.checked = checked;
+	checkbox.addEventListener('change', () => onChange(checkbox.checked));
+	label.createEl('span', { text: 'Prognoza' });
 }
 
 function renderYearBar(el: HTMLElement, entries: YearEntry[], chunkConfig: ChunkConfig, color: ColorResolver): Chart {

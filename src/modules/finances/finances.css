@@ -24,7 +24,22 @@
 .cext-year-controls {
 	display: flex;
 	justify-content: center;
+	align-items: center;
 	gap: 24px;
+	margin-bottom: 12px;
+}
+
+.cext-year-controls .cext-tabs {
+	margin-bottom: 0;
+}
+
+.cext-forecast-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	font-size: 13px;
+	color: var(--text-muted);
 }
 
 .cext-pie-body {
