@@ -39,8 +39,10 @@
 }
 
 .cext-pie-body > .cext-legend-container {
-	flex-direction: column;
-	gap: 12px;
+	display: grid;
+	grid-template-columns: repeat(2, auto);
+	align-content: center;
+	gap: 8px 24px;
 	margin-bottom: 0;
 	flex-shrink: 0;
 }
