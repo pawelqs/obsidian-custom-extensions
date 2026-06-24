@@ -4,6 +4,7 @@ import { CategoriesConfig, FALLBACK_PALETTE, makeColorResolver } from '../../sha
 import { renderColorLegend } from '../../shared/colorLegend';
 import { aggregateTrainings, aggregateBody } from './aggregator';
 import { destroyChart, setChartInstance } from '../../shared/chartInstance';
+import { createChartCanvas } from '../../shared/chartCanvas';
 
 Chart.register(...registerables);
 
@@ -25,7 +26,7 @@ export function renderTrainingChart(
 
 	el.appendChild(renderColorLegend(config, color));
 
-	const canvas = makeChartContainer(el, chunkConfig.height);
+	const canvas = createChartCanvas(el, chunkConfig.height);
 	const chart = new Chart(canvas, {
 		type: 'bar',
 		data: {
@@ -67,7 +68,7 @@ export function renderBodyChart(
 
 	const { dates, series } = aggregateBody(dailyData, chunkConfig.metrics);
 
-	const canvas = makeChartContainer(el, chunkConfig.height);
+	const canvas = createChartCanvas(el, chunkConfig.height);
 	const datasets = chunkConfig.metrics.map((m, i) => ({
 		label: m,
 		data: dates
@@ -128,11 +129,4 @@ export function renderBodyChart(
 function formatDate(ts: number): string {
 	const d = new Date(ts);
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function makeChartContainer(el: HTMLElement, height: number): HTMLCanvasElement {
-	const container = el.createEl('div');
-	container.classList.add('cext-chart-container');
-	container.style.height = `${height}px`;
-	return container.createEl('canvas');
 }

@@ -4,6 +4,7 @@ import { CategoriesConfig, ColorResolver, getAllCategories, makeColorResolver } 
 import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { destroyChart, setChartInstance } from '../../shared/chartInstance';
+import { createChartCanvas } from '../../shared/chartCanvas';
 
 Chart.register(...registerables);
 
@@ -20,11 +21,7 @@ export function renderMonthlyBudgets(
 	const legend = renderLegend(config, color);
 	el.appendChild(legend);
 
-	const canvas = el.createEl('canvas');
-	const container = el.createEl('div');
-	container.classList.add('cext-chart-container');
-	container.style.height = `${chunkConfig.height}px`;
-	container.appendChild(canvas);
+	const canvas = createChartCanvas(el, chunkConfig.height);
 
 	const labels = months.map((m) => m.label);
 	const allCats = getAllCategories(config);

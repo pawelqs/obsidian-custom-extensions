@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { MonthData } from './types';
 import { renderMonthlyBudgets } from './plotMonth';
-import { renderYearSummary } from './plotYear';
+import { renderYearView } from './plotYear';
 import { CategoriesConfig } from '../../shared/parseCategories';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { destroyChart } from '../../shared/chartInstance';
@@ -90,8 +90,6 @@ function renderView(
 	if (view === 'monthly') {
 		renderMonthlyBudgets(content, months, config, chunkConfig);
 	} else {
-		renderYearSummary(content, months, config, chunkConfig, settings.yearSortMode, (yearSortMode) =>
-			onSettingsChange({ yearSortMode })
-		);
+		renderYearView(content, months, config, chunkConfig, settings, onSettingsChange);
 	}
 }

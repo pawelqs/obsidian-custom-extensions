@@ -1,11 +1,13 @@
 import { Plugin } from 'obsidian';
-import { YearSortMode } from './plotYear';
+import { YearChartType, YearSortMode } from './plotYear';
 
 export interface FinancesSettings {
+	yearChartType: YearChartType;
 	yearSortMode: YearSortMode;
 }
 
 const DEFAULT_SETTINGS: FinancesSettings = {
+	yearChartType: 'bar',
 	yearSortMode: 'total',
 };
 

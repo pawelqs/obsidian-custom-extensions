@@ -1,8 +1,10 @@
 import { Chart, registerables } from 'chart.js';
 import { MonthData } from './types';
-import { CategoriesConfig, getAllCategories, makeColorResolver } from '../../shared/parseCategories';
+import { CategoriesConfig, ColorResolver, getAllCategories, makeColorResolver } from '../../shared/parseCategories';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { destroyChart, setChartInstance } from '../../shared/chartInstance';
+import { createChartCanvas } from '../../shared/chartCanvas';
+import { renderColorLegend, renderLegendSection } from '../../shared/colorLegend';
 import { lightenColor } from '../../shared/colors';
 import { renderTabBar } from '../../shared/tabBar';
 
@@ -11,16 +13,29 @@ Chart.register(...registerables);
 const FUTURE_LIGHTEN = 0.60;
 
 export type YearSortMode = 'actuals' | 'total';
+export type YearChartType = 'bar' | 'pie';
 
-const SORT_MODE_LABELS: Record<YearSortMode, string> = {
+export const SORT_MODE_LABELS: Record<YearSortMode, string> = {
 	actuals: 'Aktualne',
 	total: 'Aktualne + prognoza',
+};
+
+const CHART_TYPE_LABELS: Record<YearChartType, string> = {
+	bar: 'Słupki',
+	pie: 'Kołowy',
 };
 
 export interface YearEntry {
 	label: string;
 	pastValue: number;
 	currentValue: number;
+}
+
+// The "Rok" view's two persisted toggles. Field names match FinancesSettings so
+// financesChart can pass settings straight through without remapping.
+export interface YearViewSettings {
+	yearChartType: YearChartType;
+	yearSortMode: YearSortMode;
 }
 
 export function aggregateYearSummary(
@@ -67,29 +82,45 @@ function formatMonthId(date: Date): string {
 	return `${date.getFullYear()}-${month}`;
 }
 
-export function renderYearSummary(
+/**
+ * The "Rok" view: two side-by-side toggles (chart type + actuals/forecast) over a
+ * bar or pie of the same yearly aggregate. The actuals/forecast toggle sorts the
+ * bar and flattens the pie (actuals only vs actuals + forecast).
+ */
+export function renderYearView(
 	el: HTMLElement,
 	months: MonthData[],
 	config: CategoriesConfig,
 	chunkConfig: ChunkConfig,
-	sortMode: YearSortMode,
-	onSortModeChange: (sortMode: YearSortMode) => void
+	settings: YearViewSettings,
+	onSettingsChange: (changed: Partial<YearViewSettings>) => void
 ) {
 	destroyChart(el);
 	el.empty();
 
-	renderTabBar(el, SORT_MODE_LABELS, sortMode, onSortModeChange);
+	const controls = el.createEl('div');
+	controls.classList.add('cext-year-controls');
+	renderTabBar(controls, CHART_TYPE_LABELS, settings.yearChartType, (yearChartType) =>
+		onSettingsChange({ yearChartType })
+	);
+	renderTabBar(controls, SORT_MODE_LABELS, settings.yearSortMode, (yearSortMode) =>
+		onSettingsChange({ yearSortMode })
+	);
 
 	const color = makeColorResolver(config);
-	const entries = aggregateYearSummary(months, config, new Date(), sortMode);
+	const entries = aggregateYearSummary(months, config, new Date(), settings.yearSortMode);
 
-	const canvas = el.createEl('canvas');
-	const container = el.createEl('div');
-	container.classList.add('cext-chart-container');
-	container.style.height = `${chunkConfig.height}px`;
-	container.appendChild(canvas);
+	const chart =
+		settings.yearChartType === 'bar'
+			? renderYearBar(el, entries, chunkConfig, color)
+			: renderYearPie(el, entries, config, chunkConfig, settings.yearSortMode, color);
 
-	const newChart = new Chart(canvas, {
+	setChartInstance(el, chart);
+}
+
+function renderYearBar(el: HTMLElement, entries: YearEntry[], chunkConfig: ChunkConfig, color: ColorResolver): Chart {
+	const canvas = createChartCanvas(el, chunkConfig.height);
+	return new Chart(canvas, {
 		type: 'bar',
 		data: {
 			labels: entries.map((e) => e.label),
@@ -122,6 +153,59 @@ export function renderYearSummary(
 			},
 		},
 	});
+}
 
-	setChartInstance(el, newChart);
+function renderYearPie(
+	el: HTMLElement,
+	entries: YearEntry[],
+	config: CategoriesConfig,
+	chunkConfig: ChunkConfig,
+	sortMode: YearSortMode,
+	color: ColorResolver
+): Chart {
+	el.appendChild(renderPieLegend(config, color));
+	const canvas = createChartCanvas(el, chunkConfig.height);
+
+	// Flatten the two datasets per the toggle. A pie can't show negatives, so drop
+	// non-positive entries (e.g. a net-negative savings withdrawal).
+	const sliceValue = (e: YearEntry) => (sortMode === 'actuals' ? e.pastValue : e.pastValue + e.currentValue);
+	const slices = entries.map((e) => ({ label: e.label, value: sliceValue(e) })).filter((s) => s.value > 0);
+	const total = slices.reduce((sum, s) => sum + s.value, 0);
+
+	return new Chart(canvas, {
+		type: 'pie',
+		data: {
+			labels: slices.map((s) => s.label),
+			datasets: [
+				{
+					data: slices.map((s) => s.value),
+					backgroundColor: slices.map((s) => color(s.label)),
+					borderWidth: 1,
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			plugins: {
+				legend: { display: false },
+				tooltip: {
+					callbacks: {
+						label: (item) => {
+							const value = item.parsed;
+							const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+							return ` ${value} (${pct}%)`;
+						},
+					},
+				},
+			},
+		},
+	});
+}
+
+function renderPieLegend(config: CategoriesConfig, color: ColorResolver): HTMLElement {
+	const container = renderColorLegend(config, color);
+	const specials = ['savings', 'other'].map((label) => ({ label, color: color(label) }));
+	container.appendChild(renderLegendSection(specials, 'other'));
+	return container;
 }
