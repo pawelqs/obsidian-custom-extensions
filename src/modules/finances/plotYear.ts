@@ -166,10 +166,21 @@ function renderYearPie(
 	el.appendChild(renderPieLegend(config, color));
 	const canvas = createChartCanvas(el, chunkConfig.height);
 
-	// Flatten the two datasets per the toggle. A pie can't show negatives, so drop
-	// non-positive entries (e.g. a net-negative savings withdrawal).
-	const sliceValue = (e: YearEntry) => (sortMode === 'actuals' ? e.pastValue : e.pastValue + e.currentValue);
-	const slices = entries.map((e) => ({ label: e.label, value: sliceValue(e) })).filter((s) => s.value > 0);
+	// Each category becomes an actuals slice (base color); in 'total' mode the
+	// forecast is a second adjacent slice in a lighter shade, like the bar's split.
+	// A pie can't show negatives, so each part is kept only when positive.
+	const slices: { label: string; value: number; color: string }[] = [];
+	for (const e of entries) {
+		const base = color(e.label);
+		if (e.pastValue > 0) slices.push({ label: e.label, value: e.pastValue, color: base });
+		if (sortMode === 'total' && e.currentValue > 0) {
+			slices.push({
+				label: `${e.label} (prognoza)`,
+				value: e.currentValue,
+				color: lightenColor(base, FUTURE_LIGHTEN),
+			});
+		}
+	}
 	const total = slices.reduce((sum, s) => sum + s.value, 0);
 
 	return new Chart(canvas, {
@@ -179,7 +190,7 @@ function renderYearPie(
 			datasets: [
 				{
 					data: slices.map((s) => s.value),
-					backgroundColor: slices.map((s) => color(s.label)),
+					backgroundColor: slices.map((s) => s.color),
 					borderWidth: 1,
 				},
 			],
