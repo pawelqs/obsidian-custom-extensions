@@ -63,4 +63,10 @@ describe('aggregateYearSummary', () => {
 		const savings = entries.find((e) => e.label === 'savings');
 		expect((savings?.pastValue ?? 0) + (savings?.currentValue ?? 0)).toBe(150);
 	});
+
+	it('sorts by past (actuals) value only when sortBy is "actuals"', () => {
+		const entries = aggregateYearSummary(months, config, now, 'actuals');
+		expect(entries.map((e) => e.label)).toEqual(['housing', 'savings', 'transport', 'other']);
+		expect(entries.map((e) => e.pastValue)).toEqual([200, 100, 100, 0]);
+	});
 });

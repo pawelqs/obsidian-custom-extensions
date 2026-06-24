@@ -2,7 +2,7 @@ import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile }
 import { filterCategories, parseMonths } from './parser';
 import { CategoriesConfig, parseCategories } from '../../shared/parseCategories';
 import { renderTable } from './table';
-import { destroyFinancesChart, renderFinancesChart } from './chartTabs';
+import { createFinancesChartRenderer, destroyFinancesChart } from './financesChart';
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { MonthData } from './types';
 import { getElementState, setElementState } from '../../shared/elementState';
@@ -45,6 +45,7 @@ export class FinancesModule {
 				if (modifiedFile.path !== file.path) return;
 				const data = await readAndParse(ctx);
 				if (!data) return;
+				destroyFinancesChart(el);
 				el.empty();
 				const chunkConfig = parseChunkConfig(source);
 				renderer(el, data.months, data.config, chunkConfig);
@@ -63,7 +64,7 @@ export class FinancesModule {
 			});
 		};
 
-		registerChartBlock('cext-finances-chart', renderFinancesChart);
+		registerChartBlock('cext-finances-chart', createFinancesChartRenderer(plugin));
 		registerChartBlock('cext-finances-table', renderTable);
 	}
 }

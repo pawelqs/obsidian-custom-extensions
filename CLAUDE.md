@@ -40,14 +40,14 @@ src/
     renderer.ts                 # Thin DOM/Chart.js/Leaflet layer, when one render function covers the module
     types.ts                    # When the module has domain interfaces (categories config comes from shared)
     <view>.ts                   # When a module has multiple independent chart views, one file per view can hold both its data shaping and its rendering (e.g. finances' plotMonth.ts/plotYear.ts) instead of forcing a shared renderer.ts + aggregator.ts split
-    <feature>.ts                # Self-contained sub-feature behind one exported entry point (e.g. sum-weights' weightsPie.ts, annotationsWatcher.ts, finances' chartTabs.ts)
+    <feature>.ts                # Self-contained sub-feature behind one exported entry point (e.g. sum-weights' weightsPie.ts, annotationsWatcher.ts, finances' financesChart.ts)
     testdata/test.txt           # When tests need realistic input, imported as a plain string
 ```
 
 What matters is the role separation (pure parsing / wiring stay separate from rendering and from each other), not a fixed file list. Each module picks the split that fits its own shape — parser.ts and index.ts are the only files every module is expected to have; everything else (one renderer vs. several view-specific files, a shared aggregator vs. data shaping inlined per view) is a per-module choice. sum-weights has no code block at all and finances splits its chart into `plotMonth.ts`/`plotYear.ts` instead of one `renderer.ts` — both still fit the same role separation.
 
 **Modules** (each module's `README.md` is the source of truth for its data format, options, and implementation notes — read it before working on the module):
-- **finances** — code blocks `cext-finances-chart` (tabbed: monthly stacked bar in `plotMonth.ts`, year-summary horizontal bar in `plotYear.ts`, tab switching owned by `chartTabs.ts`) and `cext-finances-table` (HTML table, `table.ts`). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
+- **finances** — code blocks `cext-finances-chart` (tabbed: monthly stacked bar in `plotMonth.ts`, year-summary horizontal bar in `plotYear.ts`; tab switching + persisted settings owned by `financesChart.ts`, settings storage in `settings.ts`) and `cext-finances-table` (HTML table, `table.ts`). Parses `## Categories` and `### YYYY-MM` blocks with `income`/`taxes`/`savings`/`expenses` sections.
 - **trainings** — code blocks `cext-trainings-chart` (stacked bar of hours per week × category) and `cext-trainings-body` (line chart of body metrics like `kg`, `PBF`). Parses `## Kategorie` and `## Data` with `- YYYY-MM-DD` daily entries.
 - **map** — single code block `cext-map` (Leaflet map). Scans the whole note for `` `geo: …` `` tokens, drops a colored marker per location, connects route points into polylines, and turns inline geo tokens into click-to-recenter links. No `aggregator.ts` (parser → renderer directly).
 - **sum-weights** — no code block: a Markdown post-processor (`registerMarkdownPostProcessor`). When a heading carries `#sum-weights`/`#suma-wag`, list items under it get inline `Σ <n>g` subtotal badges plus a grand-total row. The exception to the code-block pattern below.

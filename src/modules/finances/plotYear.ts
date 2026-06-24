@@ -4,10 +4,18 @@ import { CategoriesConfig, getAllCategories, makeColorResolver } from '../../sha
 import { ChunkConfig } from '../../shared/chunkConfig';
 import { destroyChart, setChartInstance } from '../../shared/chartInstance';
 import { lightenColor } from '../../shared/colors';
+import { renderTabBar } from '../../shared/tabBar';
 
 Chart.register(...registerables);
 
-const FUTURE_LIGHTEN = 0.45;
+const FUTURE_LIGHTEN = 0.60;
+
+export type YearSortMode = 'actuals' | 'total';
+
+const SORT_MODE_LABELS: Record<YearSortMode, string> = {
+	actuals: 'Aktualne',
+	total: 'Aktualne + prognoza',
+};
 
 export interface YearEntry {
 	label: string;
@@ -18,7 +26,8 @@ export interface YearEntry {
 export function aggregateYearSummary(
 	months: MonthData[],
 	config: CategoriesConfig,
-	now: Date = new Date()
+	now: Date = new Date(),
+	sortBy: YearSortMode = 'total'
 ): YearEntry[] {
 	const allCats = getAllCategories(config);
 	const currentMonthId = formatMonthId(now);
@@ -36,14 +45,21 @@ export function aggregateYearSummary(
 		return { pastValue, currentValue };
 	};
 
-	return [
+	const entries: YearEntry[] = [
 		{ label: 'savings', ...splitSum((m) => m.savings) },
 		...allCats.map((cat) => ({ label: cat, ...splitSum((m) => m.cats[cat] || 0) })),
 		{
 			label: 'other',
 			...splitSum((m) => Math.max(0, m.income - m.taxes - m.savings - m.expenses)),
 		},
-	].sort((a, b) => b.pastValue + b.currentValue - (a.pastValue + a.currentValue));
+	];
+
+	return sortEntries(entries, sortBy);
+}
+
+function sortEntries(entries: YearEntry[], sortBy: YearSortMode): YearEntry[] {
+	const sortKey = (e: YearEntry) => (sortBy === 'actuals' ? e.pastValue : e.pastValue + e.currentValue);
+	return entries.sort((a, b) => sortKey(b) - sortKey(a));
 }
 
 function formatMonthId(date: Date): string {
@@ -55,12 +71,17 @@ export function renderYearSummary(
 	el: HTMLElement,
 	months: MonthData[],
 	config: CategoriesConfig,
-	chunkConfig: ChunkConfig
+	chunkConfig: ChunkConfig,
+	sortMode: YearSortMode,
+	onSortModeChange: (sortMode: YearSortMode) => void
 ) {
 	destroyChart(el);
+	el.empty();
+
+	renderTabBar(el, SORT_MODE_LABELS, sortMode, onSortModeChange);
 
 	const color = makeColorResolver(config);
-	const entries = aggregateYearSummary(months, config);
+	const entries = aggregateYearSummary(months, config, new Date(), sortMode);
 
 	const canvas = el.createEl('canvas');
 	const container = el.createEl('div');
