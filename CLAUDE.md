@@ -13,6 +13,8 @@ bun test         # Run tests (bun:test framework)
 bun run lint     # Lint code
 ```
 
+**After making code changes, always run `bun run build`** (it runs `tsc -noEmit` + esbuild) to confirm the change compiles and bundles before considering the task done. Run `bun run lint` and the relevant `bun test` too when the change warrants it.
+
 Reload in Obsidian: Settings → Community Plugins → Disable/Enable cext, or Cmd+R with Hot-Reload.
 
 **Shell usage**: Don't prefix commands with `cd` into the project directory. The shell already runs in the project root, and a `cd` inside a compound command (`cd … && …`) triggers an extra permission prompt. Use absolute paths or relative paths from the project root instead. For the same reason, avoid `git -C <path> …` — the `-C` flag hides the subcommand from Claude Code's read-only detection, so even read-only git commands prompt. Run plain `git status` / `git ls-files` etc. from the project root.
