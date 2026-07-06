@@ -4,8 +4,8 @@ import { MapLocation, MapRoute } from './types';
 // Matches the backtick-wrapped `geo: lat, lon` token anywhere in a line, capturing
 // the optional tail (sigils or `key: value` pairs) after lon up to the closing backtick.
 const GEO_RE = /`geo:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*([^`]*?)\s*`/;
-// Splits name from the geo token: everything before the opening ` `geo:`
-const NAME_RE = /^(.+?)\s+`geo:/;
+// Global variant to iterate every geo token in a line (multiple tokens per prose line).
+const GEO_RE_G = new RegExp(GEO_RE.source, 'g');
 // Strips optional list marker (- or N.) from start of line
 const LIST_MARKER_RE = /^\s*(?:-|\d+\.)\s+/;
 // A single `key: value` segment from the geo token tail (verbose form)
@@ -15,6 +15,10 @@ const CAT_SIGIL_RE = /(?:^|\s)#(\S+)/;
 const ROUTE_SIGIL_RE = /(?:^|\s)@(\S+)/;
 // A route value `name#seq`; the trailing `#<n>` (sequence) is optional
 const ROUTE_RE = /^(.+?)\s*#\s*(\d+)\s*$/;
+// Emphasis span (**bold**, *italic*, __bold__, _italic_) at the very end of the
+// pre-token text — lets geo tokens sit inside prose with just the place name emphasized.
+// Bold alternatives come first so `**x**`/`__x__` win over the italic forms.
+const EMPHASIS_NAME_RE = /(?:\*\*(.+?)\*\*|\*(.+?)\*|__(.+?)__|_(.+?)_)\s*$/;
 
 export function parseLocations(
 	content: string,
@@ -38,18 +42,22 @@ export function parseLocations(
 			continue;
 		}
 
-		const geo = parseGeo(line);
-		if (!geo) continue;
-
+		// A line may hold several geo tokens; each takes its name from the text
+		// between the previous token (or line start) and its own opening backtick.
 		const stripped = line.replace(LIST_MARKER_RE, '');
-		const nameMatch = stripped.match(NAME_RE);
-		if (!nameMatch?.[1]) continue;
-
-		locations.push({
-			...geo,
-			name: nameMatch[1].trim(),
-			category: geo.category ?? currentCategory,
-		});
+		let lastEnd = 0;
+		for (const m of stripped.matchAll(GEO_RE_G)) {
+			const start = m.index ?? 0;
+			const token = tokenFromMatch(m);
+			if (token) {
+				const before = stripped.slice(lastEnd, start).trim();
+				const name = before && extractName(before);
+				if (name) {
+					locations.push({ ...token, name, category: token.category ?? currentCategory });
+				}
+			}
+			lastEnd = start + m[0].length;
+		}
 	}
 
 	return locations;
@@ -74,11 +82,23 @@ export function buildRoutes(locations: MapLocation[]): MapRoute[] {
 	return routes;
 }
 
+// If the text directly before the geo token ends with an emphasis span, the name is
+// that span's inner text; otherwise the whole preceding text is the name (list form).
+function extractName(before: string): string {
+	const m = before.match(EMPHASIS_NAME_RE);
+	if (!m) return before;
+	return (m[1] ?? m[2] ?? m[3] ?? m[4] ?? before).trim();
+}
+
 type GeoToken = Omit<MapLocation, 'name'>;
 
 function parseGeo(line: string): GeoToken | null {
 	const m = line.match(GEO_RE);
-	if (!m?.[1] || !m[2]) return null;
+	return m ? tokenFromMatch(m) : null;
+}
+
+function tokenFromMatch(m: RegExpMatchArray): GeoToken | null {
+	if (!m[1] || !m[2]) return null;
 
 	const token: GeoToken = {
 		lat: parseFloat(m[1]),

@@ -91,6 +91,42 @@ describe('parseLocations', () => {
 		]);
 	});
 
+	test('emfaza bezpośrednio przed geo jest nazwą (kursywa, pogrubienie, _, __)', () => {
+		const input = [
+			'Odwiedziliśmy piękną *Roma* `geo: 41.9, 12.4` wczoraj.',
+			'Wjazd na **Wieża Eiffla** `geo: 48.858, 2.294`',
+			'Potem _Praha_ `geo: 50.08, 14.43`',
+			'i na koniec __Wien__ `geo: 48.2, 16.37`',
+		].join('\n');
+		expect(parseLocations(input, emptyConfig)).toEqual([
+			{ name: 'Roma',         lat: 41.9,   lon: 12.4,  category: null, route: null, seq: null },
+			{ name: 'Wieża Eiffla', lat: 48.858, lon: 2.294, category: null, route: null, seq: null },
+			{ name: 'Praha',        lat: 50.08,  lon: 14.43, category: null, route: null, seq: null },
+			{ name: 'Wien',         lat: 48.2,   lon: 16.37, category: null, route: null, seq: null },
+		]);
+	});
+
+	test('emfaza wygrywa też w liście; emfaza nie na końcu → cały tekst przed', () => {
+		const input = [
+			'- *Roma* `geo: 41.9, 12.4`',
+			'Zwiedzanie *pięknego* Rzymu `geo: 41.8, 12.5`',
+		].join('\n');
+		expect(parseLocations(input, emptyConfig)).toEqual([
+			{ name: 'Roma',                    lat: 41.9, lon: 12.4, category: null, route: null, seq: null },
+			{ name: 'Zwiedzanie *pięknego* Rzymu', lat: 41.8, lon: 12.5, category: null, route: null, seq: null },
+		]);
+	});
+
+	test('kilka tokenów geo w jednym wierszu — nazwa z fragmentu przed każdym', () => {
+		const input =
+			'Zaczęliśmy od **Roma** `geo: 41.9, 12.4 #miasta`, potem *Napoli* `geo: 40.85, 14.27` i _Bari_ `geo: 41.12, 16.87`.';
+		expect(parseLocations(input, emptyConfig)).toEqual([
+			{ name: 'Roma',   lat: 41.9,  lon: 12.4,  category: 'miasta', route: null, seq: null },
+			{ name: 'Napoli', lat: 40.85, lon: 14.27, category: null,     route: null, seq: null },
+			{ name: 'Bari',   lat: 41.12, lon: 16.87, category: null,     route: null, seq: null },
+		]);
+	});
+
 	test('sam sigil kategorii / sam sigil trasy bez numeru', () => {
 		const input = [
 			'- A `geo: 52.1, 21.0 #muzea`',

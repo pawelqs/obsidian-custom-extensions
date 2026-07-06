@@ -3,6 +3,14 @@
 ## Description
 Renders a map in Obsidian — scans the note for `geo:` tokens and draws a Leaflet map (`cext-map`) with a colored marker per location. The name is the text before the token; the category is optional and defaults to the nearest preceding heading. Inline `geo:` tokens elsewhere in the note become clickable links that recenter the map on that point.
 
+**Naming inside prose**: if the text **directly before** the token is wrapped in emphasis (`*italic*`, `**bold**`, `_italic_`, `__bold__`), that span's inner text becomes the name — so a token can sit mid-sentence without the whole sentence turning into the label. Emphasis takes precedence over the full-text rule; it must be the last thing before the token (only whitespace may follow):
+
+```markdown
+We climbed the beautiful **Vesuvio** `geo: 40.821, 14.426` at dawn.
+```
+
+Here the marker is named `Vesuvio`, not `We climbed the beautiful Vesuvio`. Without a trailing emphasis span the old behavior stands (the whole preceding text is the name), so existing `- Roma \`geo: …\`` lists are unaffected.
+
 The geo token accepts an optional tail after the coordinates, in either of two equivalent forms:
 
 **Sigils** (terse, space-separated — names cannot contain spaces, use kebab-case):
@@ -30,6 +38,8 @@ The fenced `cext-map` block accepts these lines:
 
 ## Implementation notes
 - The token tail is parsed by `parseGeo`/`parseTail` (parser.ts); both sigil and verbose forms normalize to the same fields.
+- A line may carry several geo tokens: `parseLocations` iterates them with the global `GEO_RE_G`, and each token's name is taken from the text between the previous token (or line start) and its own opening backtick — so a paragraph can drop multiple markers.
+- The name comes from `extractName` (parser.ts): a trailing emphasis span (`EMPHASIS_NAME_RE`, bold tried before italic) on that pre-token text yields the inner text; otherwise the whole preceding segment is used. Headings keep their own name path and are not affected.
 - `buildRoutes` (parser.ts, pure + tested) groups points that have both `route` and `seq` into ordered `MapRoute`s. There is no `aggregator.ts` — parser feeds the renderer directly.
 - Routes render as a polyline with numbered `divIcon` markers and direction arrows (a rotated `divIcon` at each segment midpoint — no extra Leaflet plugin). Route color comes from the shared color resolver with the route name as key.
 - `no-implicit-categories` is read-time only: `parseChunkConfig` puts it on `MapChunkConfig` and it's passed into `parseLocations`; uncategorized points get `UNCATEGORIZED_COLOR` and stay out of the legend. `renderMap` receives the flag but ignores it.
