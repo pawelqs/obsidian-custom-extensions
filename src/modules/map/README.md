@@ -15,7 +15,7 @@ The geo token accepts an optional tail after the coordinates, in either of two e
 
 **Sigils** (terse, space-separated — names cannot contain spaces, use kebab-case):
 - `#<category>` — color/legend category.
-- `@<name>#<n>` — assign the point to route `<name>` at position `n`.
+- `@<name>#<n>` — assign the point to route `<name>` at position `n`. Repeat to put one point on several routes: `@day1#3 @loop#1`.
 
 ```markdown
 - Roma `geo: 41.9028, 12.4964 #city @day1#1`
@@ -23,13 +23,15 @@ The geo token accepts an optional tail after the coordinates, in either of two e
 
 **Verbose** (`key: value`, comma-separated — names may contain spaces):
 - `cat: <category>` — color/legend category.
-- `route: <name>#<n>` — same as `@<name>#<n>`.
+- `route: <name>#<n>` — same as `@<name>#<n>`; repeat the `route:` key to join several routes.
 
 ```markdown
 - Roma `geo: 41.9028, 12.4964, cat: city, route: day1#1`
 ```
 
-In both forms the category falls back to the nearest preceding heading. Points sharing a route are connected into a polyline in ascending `#<n>` order, drawn as numbered markers with direction arrows. A route's color comes from the shared `## Categories` resolver (define `- <name>: #color` to pick it; otherwise a fallback palette color is assigned). The `#<n>` sequence is required for a point to join the route — a route without it is ignored when drawing the path.
+In both forms the category falls back to the nearest preceding heading. Points sharing a route are connected into a polyline in ascending `#<n>` order, drawn as numbered markers with direction arrows. A route's color comes from the shared `## Categories` resolver (define `- <name>: #color` to pick it; otherwise a fallback palette color is assigned). The `#<n>` sequence is required for a point to join the route — a reference without it (`@trasa` / `route: trasa`) can't be ordered and is dropped.
+
+**A point may belong to several routes** (repeat the `@`/`route:` marker) — each route then passes through it in its own `#<n>` order, so routes can share stops or cross. The marker's number badge shows the point's position in its *first* route; the popup lists every route it belongs to (`2. day1`, `1. loop`).
 
 ## Render block options
 The fenced `cext-map` block accepts these lines:
@@ -37,11 +39,11 @@ The fenced `cext-map` block accepts these lines:
 - `no-implicit-categories` — read-time flag: a point's category comes **only** from an explicit `cat:`/`#tag`, never inherited from the nearest heading. Points without an explicit category render in the neutral color and stay out of the legend.
 
 ## Implementation notes
-- The token tail is parsed by `parseGeo`/`parseTail` (parser.ts); both sigil and verbose forms normalize to the same fields.
+- The token tail is parsed by `parseGeo`/`parseTail` (parser.ts); both sigil and verbose forms normalize to the same fields. Each `@`/`route:` marker appends a `RouteMembership` to `loc.routes`, so a point can carry several.
 - A line may carry several geo tokens: `parseLocations` iterates them with the global `GEO_RE_G`, and each token's name is taken from the text between the previous token (or line start) and its own opening backtick — so a paragraph can drop multiple markers.
 - The name comes from `extractName` (parser.ts): a trailing emphasis span (`EMPHASIS_NAME_RE`, bold tried before italic) on that pre-token text yields the inner text; otherwise the whole preceding segment is used. Headings keep their own name path and are not affected.
-- `buildRoutes` (parser.ts, pure + tested) groups points that have both `route` and `seq` into ordered `MapRoute`s. There is no `aggregator.ts` — parser feeds the renderer directly.
-- Routes render as a polyline with numbered `divIcon` markers and direction arrows (a rotated `divIcon` at each segment midpoint — no extra Leaflet plugin). Route color comes from the shared color resolver with the route name as key.
+- `buildRoutes` (parser.ts, pure + tested) walks each point's `routes` memberships and groups those with a `seq` into ordered `MapRoute`s; a point shared by several routes lands in each. There is no `aggregator.ts` — parser feeds the renderer directly.
+- Routes render as a polyline with numbered `divIcon` markers and direction arrows (a rotated `divIcon` at each segment midpoint — no extra Leaflet plugin). Route color comes from the shared color resolver with the route name as key. A routed marker's badge shows the point's first membership seq (`addMarkers` picks the first `routes` entry with a seq); the popup lists all memberships.
 - `no-implicit-categories` is read-time only: `parseChunkConfig` puts it on `MapChunkConfig` and it's passed into `parseLocations`; uncategorized points get `UNCATEGORIZED_COLOR` and stay out of the legend. `renderMap` receives the flag but ignores it.
 - Inline `geo:` tokens elsewhere in the note get the `.cext-coords-link` class and recenter the map via a `cext-map-fly` CustomEvent (one delegated document-level click handler).
 

@@ -143,8 +143,10 @@ function addMarkers(layer: L.LayerGroup, locations: MapLocation[], color: ColorR
 	for (const loc of locations) {
 		// Markers carry the category color; the route color stays on the line + arrows.
 		const fillColor = loc.category ? color(loc.category) : UNCATEGORIZED_COLOR;
-		const marker = loc.route !== null && loc.seq !== null
-			? numberedMarker(loc, fillColor)
+		// A point in several routes shows the number from its first route.
+		const firstRoute = loc.routes[0];
+		const marker = firstRoute
+			? numberedMarker(loc, firstRoute.seq, fillColor)
 			: dotMarker(loc, fillColor);
 		layer.addLayer(marker);
 	}
@@ -163,10 +165,10 @@ function dotMarker(loc: MapLocation, fillColor: string): L.CircleMarker {
 	return marker;
 }
 
-function numberedMarker(loc: MapLocation, fillColor: string): L.Marker {
+function numberedMarker(loc: MapLocation, seq: number, fillColor: string): L.Marker {
 	const icon = L.divIcon({
 		className: 'cext-route-marker-wrapper',
-		html: `<div class="cext-route-marker" style="background:${escapeHtml(fillColor)}">${loc.seq}</div>`,
+		html: `<div class="cext-route-marker" style="background:${escapeHtml(fillColor)}">${seq}</div>`,
 		iconSize: [18, 18],
 		iconAnchor: [9, 9],
 	});
@@ -204,8 +206,8 @@ function arrowMarker(from: LatLng, to: LatLng, routeColor: string): L.Marker {
 
 function popupHtml(loc: MapLocation, swatchColor: string): string {
 	const lines = [`<b>${escapeHtml(loc.name)}</b>`];
-	if (loc.route !== null && loc.seq !== null) {
-		lines.push(`<span style="color:${escapeHtml(swatchColor)}">${loc.seq}.</span> ${escapeHtml(loc.route)}`);
+	for (const m of loc.routes) {
+		lines.push(`<span style="color:${escapeHtml(swatchColor)}">${m.seq}.</span> ${escapeHtml(m.name)}`);
 	}
 	if (loc.category) {
 		lines.push(`<span style="color:${escapeHtml(swatchColor)}">●</span> ${escapeHtml(loc.category)}`);

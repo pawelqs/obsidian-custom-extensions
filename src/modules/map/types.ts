@@ -3,13 +3,19 @@ export interface MapChunkConfig {
 	implicitCategories: boolean; // false → categories come only from explicit cat:/#tag, not from headings
 }
 
+// One point's membership in a route: its name plus position (`#<n>`) in the path.
+// A route reference without a `#<n>` number can't be ordered, so it isn't stored.
+export interface RouteMembership {
+	name: string;
+	seq: number;
+}
+
 export interface MapLocation {
 	name: string;
 	lat: number;
 	lon: number;
 	category: string | null;
-	route: string | null;
-	seq: number | null;
+	routes: RouteMembership[]; // a point may belong to several routes
 }
 
 // A named path connecting routed locations, ordered ascending by their seq number.

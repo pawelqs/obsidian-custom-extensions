@@ -10,9 +10,10 @@ const GEO_RE_G = new RegExp(GEO_RE.source, 'g');
 const LIST_MARKER_RE = /^\s*(?:-|\d+\.)\s+/;
 // A single `key: value` segment from the geo token tail (verbose form)
 const TAIL_KV_RE = /^\s*(cat|route):\s*(.+?)\s*$/;
-// Sigil forms (space-separated, no spaces inside names): `#category` and `@route`
+// Sigil forms (space-separated, no spaces inside names): `#category` and `@route`.
+// The route sigil is global — a point may carry several `@route#seq` sigils.
 const CAT_SIGIL_RE = /(?:^|\s)#(\S+)/;
-const ROUTE_SIGIL_RE = /(?:^|\s)@(\S+)/;
+const ROUTE_SIGIL_RE = /(?:^|\s)@(\S+)/g;
 // A route value `name#seq`; the trailing `#<n>` (sequence) is optional
 const ROUTE_RE = /^(.+?)\s*#\s*(\d+)\s*$/;
 // Emphasis span (**bold**, *italic*, __bold__, _italic_) at the very end of the
@@ -63,21 +64,22 @@ export function parseLocations(
 	return locations;
 }
 
-// Groups routed locations (those with both route and seq) into named paths,
-// ordered by seq. Routes keep first-appearance order; non-routed points are ignored.
+// Groups route memberships into named paths, ordered by seq. A point in several
+// routes appears in each. Routes keep first-appearance order.
 export function buildRoutes(locations: MapLocation[]): MapRoute[] {
-	const byRoute = new Map<string, MapLocation[]>();
+	const byRoute = new Map<string, { loc: MapLocation; seq: number }[]>();
 	for (const loc of locations) {
-		if (loc.route === null || loc.seq === null) continue;
-		const points = byRoute.get(loc.route) ?? [];
-		points.push(loc);
-		byRoute.set(loc.route, points);
+		for (const membership of loc.routes) {
+			const entries = byRoute.get(membership.name) ?? [];
+			entries.push({ loc, seq: membership.seq });
+			byRoute.set(membership.name, entries);
+		}
 	}
 
 	const routes: MapRoute[] = [];
-	for (const [name, points] of byRoute) {
-		points.sort((a, b) => a.seq! - b.seq!);
-		routes.push({ name, points });
+	for (const [name, entries] of byRoute) {
+		entries.sort((a, b) => a.seq - b.seq);
+		routes.push({ name, points: entries.map((e) => e.loc) });
 	}
 	return routes;
 }
@@ -104,21 +106,21 @@ function tokenFromMatch(m: RegExpMatchArray): GeoToken | null {
 		lat: parseFloat(m[1]),
 		lon: parseFloat(m[2]),
 		category: null,
-		route: null,
-		seq: null,
+		routes: [],
 	};
 
 	parseTail(m[3] ?? '', token);
 	return token;
 }
 
-// Reads the optional token tail, supporting both forms (sigils take precedence
-// only when present; the two are not expected to be mixed in one token):
-//   sigils:    `#category @route#seq`            — space-separated, no spaces in names
-//   key/value: `, cat: category, route: name#seq` — comma-separated, names may have spaces
+// Reads the optional token tail, supporting both forms (the two are not expected to
+// be mixed in one token). Either form may name several routes for one point:
+//   sigils:    `#category @day1#1 @day2#3`             — space-separated, no spaces in names
+//   key/value: `, cat: category, route: day1#1, route: day2#3` — comma-separated, names may have spaces
 function parseTail(tail: string, token: GeoToken): void {
-	const routeSigil = tail.match(ROUTE_SIGIL_RE);
-	if (routeSigil?.[1]) assignRoute(token, routeSigil[1]);
+	for (const m of tail.matchAll(ROUTE_SIGIL_RE)) {
+		assignRoute(token, m[1]!);
+	}
 
 	const catSigil = tail.match(CAT_SIGIL_RE);
 	if (catSigil?.[1]) token.category = catSigil[1];
@@ -131,12 +133,11 @@ function parseTail(tail: string, token: GeoToken): void {
 	}
 }
 
+// A route reference must carry a `#<n>` sequence to join the path; one without a
+// number can't be ordered and is surfaced nowhere, so we don't store it.
 function assignRoute(token: GeoToken, value: string): void {
 	const r = value.match(ROUTE_RE);
 	if (r?.[1] && r[2]) {
-		token.route = r[1].trim();
-		token.seq = parseInt(r[2], 10);
-	} else {
-		token.route = value.trim();
+		token.routes.push({ name: r[1].trim(), seq: parseInt(r[2], 10) });
 	}
 }
