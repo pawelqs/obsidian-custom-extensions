@@ -77,6 +77,7 @@ export function renderTrainingChart(
 							const ts = items[0]?.parsed.x;
 							return ts != null ? formatDate(ts) : '';
 						},
+						label: (item) => `${item.dataset.label}: ${formatHours(item.parsed.y ?? 0)}`,
 					},
 				},
 			},
@@ -137,6 +138,15 @@ function formatMonth(key: string): string {
 	const d = new Date(key + '-01T00:00:00Z');
 	const month = d.toLocaleDateString('pl-PL', { month: 'short', timeZone: 'UTC' });
 	return `${month} ${key.slice(0, 4)}`;
+}
+
+/** Decimal hours → 'XXm' below one hour, 'Xh' on the hour, 'Xh XXm' otherwise. */
+function formatHours(hours: number): string {
+	const total = Math.round(hours * 60);
+	const h = Math.floor(total / 60);
+	const m = total % 60;
+	if (h === 0) return `${m}m`;
+	return m === 0 ? `${h}h` : `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
 export function renderBodyChart(
