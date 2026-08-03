@@ -71,6 +71,14 @@ export function renderTrainingChart(
 			},
 			plugins: {
 				legend: { display: false },
+				tooltip: {
+					callbacks: {
+						title: (items) => {
+							const ts = items[0]?.parsed.x;
+							return ts != null ? formatDate(ts) : '';
+						},
+					},
+				},
 			},
 		},
 		plugins: [monthBandsPlugin(labelBands(monthBands(weeks)), textColor)],
