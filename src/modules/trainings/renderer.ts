@@ -32,14 +32,17 @@ export function renderTrainingChart(
 	el.appendChild(renderColorLegend(config, color));
 
 	const canvas = createChartCanvas(el, chunkConfig.height);
-	const first = weeks[0];
-	const last = weeks[weeks.length - 1];
+	// Precompute once per render; the plugin's beforeDraw runs every frame, so it must stay allocation-free.
+	const timestamps = weeks.map(weekMs);
+	const first = timestamps[0];
+	const last = timestamps[timestamps.length - 1];
+	const textColor = getComputedStyle(canvas).color || '#666';
 	const chart = new Chart(canvas, {
 		type: 'bar',
 		data: {
 			datasets: categories.map((cat) => ({
 				label: cat,
-				data: weeks.map((w) => ({ x: weekMs(w), y: hoursByWeekCategory[w]?.[cat] || 0 })),
+				data: weeks.map((w, i) => ({ x: timestamps[i] as number, y: hoursByWeekCategory[w]?.[cat] || 0 })),
 				backgroundColor: color(cat),
 				stack: 'stack',
 				categoryPercentage: 0.9,
@@ -55,8 +58,8 @@ export function renderTrainingChart(
 					type: 'linear',
 					stacked: true,
 					// half a week of padding on each side, so edge bars aren't clipped in half
-					min: first ? weekMs(first) - DAY_MS * 3.5 : undefined,
-					max: last ? weekMs(last) + DAY_MS * 3.5 : undefined,
+					min: first !== undefined ? first - DAY_MS * 3.5 : undefined,
+					max: last !== undefined ? last + DAY_MS * 3.5 : undefined,
 					grid: { display: false },
 					ticks: { display: false },
 				},
@@ -70,14 +73,24 @@ export function renderTrainingChart(
 				legend: { display: false },
 			},
 		},
-		plugins: [monthBandsPlugin(monthBands(weeks))],
+		plugins: [monthBandsPlugin(labelBands(monthBands(weeks)), textColor)],
 	});
 
 	setChartInstance(el, chart);
 }
 
-/** Draws alternating background bands per month plus a centered month/year label under each. */
-function monthBandsPlugin(bands: MonthBand[]): Plugin<'bar'> {
+interface LabelBand {
+	startMs: number;
+	endMs: number;
+	label: string;  // formatted once at render time — never inside beforeDraw
+}
+
+function labelBands(bands: MonthBand[]): LabelBand[] {
+	return bands.map((b) => ({ startMs: b.startMs, endMs: b.endMs, label: formatMonth(b.key) }));
+}
+
+/** Draws alternating background bands per month plus a centered, 45°-rotated month/year label under each. */
+function monthBandsPlugin(bands: LabelBand[], textColor: string): Plugin<'bar'> {
 	return {
 		id: 'cext-month-bands',
 		beforeDraw(chart) {
@@ -86,8 +99,9 @@ function monthBandsPlugin(bands: MonthBand[]): Plugin<'bar'> {
 			if (!x || bands.length === 0) return;
 
 			const clamp = (px: number) => Math.max(chartArea.left, Math.min(chartArea.right, px));
-			const textColor = getComputedStyle(chart.canvas).color || '#666';
 			ctx.save();
+			ctx.font = '11px sans-serif';
+			ctx.textBaseline = 'middle';
 			bands.forEach((band, i) => {
 				const left = clamp(x.getPixelForValue(band.startMs));
 				const right = clamp(x.getPixelForValue(band.endMs));
@@ -101,10 +115,8 @@ function monthBandsPlugin(bands: MonthBand[]): Plugin<'bar'> {
 				ctx.translate((left + right) / 2, chartArea.bottom + 6);
 				ctx.rotate(-Math.PI / 4);
 				ctx.fillStyle = textColor;
-				ctx.font = '11px sans-serif';
 				ctx.textAlign = 'right';
-				ctx.textBaseline = 'middle';
-				ctx.fillText(formatMonth(band.key), 0, 0);
+				ctx.fillText(band.label, 0, 0);
 				ctx.restore();
 			});
 			ctx.restore();
