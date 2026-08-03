@@ -13,7 +13,7 @@ const METRIC_COLORS: Record<string, string> = {
 	PBF: '#e67e22',
 };
 
-const MONTH_LABEL_HEIGHT = 22;  // px reserved below the plot for centered month/year labels
+const MONTH_LABEL_HEIGHT = 40;  // px reserved below the plot for the 45°-rotated month/year labels
 const DAY_MS = 86_400_000;
 
 const weekMs = (week: string) => Date.parse(week + 'T00:00:00Z');
@@ -97,15 +97,15 @@ function monthBandsPlugin(bands: MonthBand[]): Plugin<'bar'> {
 					ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
 				}
 
+				ctx.save();
+				ctx.translate((left + right) / 2, chartArea.bottom + 6);
+				ctx.rotate(-Math.PI / 4);
 				ctx.fillStyle = textColor;
 				ctx.font = '11px sans-serif';
-				ctx.textAlign = 'center';
+				ctx.textAlign = 'right';
 				ctx.textBaseline = 'middle';
-				ctx.fillText(
-					formatMonth(band.key),
-					(left + right) / 2,
-					chartArea.bottom + MONTH_LABEL_HEIGHT / 2
-				);
+				ctx.fillText(formatMonth(band.key), 0, 0);
+				ctx.restore();
 			});
 			ctx.restore();
 		},
