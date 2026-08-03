@@ -112,10 +112,10 @@ function monthBandsPlugin(bands: LabelBand[], textColor: string): Plugin<'bar'> 
 				}
 
 				ctx.save();
-				ctx.translate((left + right) / 2, chartArea.bottom + 6);
+				ctx.translate((left + right) / 2, chartArea.bottom + MONTH_LABEL_HEIGHT / 2);
 				ctx.rotate(-Math.PI / 4);
 				ctx.fillStyle = textColor;
-				ctx.textAlign = 'right';
+				ctx.textAlign = 'center';
 				ctx.fillText(band.label, 0, 0);
 				ctx.restore();
 			});
