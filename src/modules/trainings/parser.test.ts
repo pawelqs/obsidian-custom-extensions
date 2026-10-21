@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { parseDailyData, parseBodyItems, parseTrainingItems, parseInline } from './parser';
+import { parseDailyData, parseBodyItems, parseTrainingItems, parseInline, parseWeeklyExercises, parseExerciseLine } from './parser';
 import { parseCategories } from '../../shared/parseCategories';
 import testData from './testdata/test.txt';
 
@@ -126,5 +126,65 @@ describe('parseTrainingItems', () => {
 			{ category: 'strength', hours: 1 },
 		]);
 		expect(parseTrainingItems('')).toEqual([]);
+	});
+});
+
+const weeklyInput = `## Data
+
+### 2026-10-19
+- body: 76 kg
+- ćwiczenia:
+	- siłowy
+		- [A] stanie na rękach [cel:: 2] dni
+		- [5] pull / push [cel:: 10] serii
+			- wt
+			- podciąganie 5,8,8
+		- [0] ćwiczenia od fizjo
+	- [3] wzrok
+
+### 2026-10-12
+- [7] wzrok
+`;
+
+describe('parseDailyData (weekly heading)', () => {
+	it('reads "- body:" bullets under a ### date heading', () => {
+		const dailyData = parseDailyData(weeklyInput, { colorsMap: {}, groupCats: {}, groupOrder: [] });
+		expect(dailyData).toEqual([
+			{ date: '2026-10-12', body: [], trainings: [] },
+			{ date: '2026-10-19', body: [{ metric: 'kg', value: 76 }], trainings: [] },
+		]);
+	});
+});
+
+describe('parseExerciseLine', () => {
+	it('parses status, name and goal', () => {
+		expect(parseExerciseLine('\t\t- [5] pull / push [cel:: 10] serii')).toEqual({
+			name: 'pull / push',
+			level: 5,
+			goal: '10 serii',
+		});
+	});
+
+	it('treats A as fully done and goal as optional', () => {
+		expect(parseExerciseLine('- [A] wzrok')).toEqual({ name: 'wzrok', level: 10, goal: undefined });
+	});
+
+	it('maps default checkbox statuses', () => {
+		expect(parseExerciseLine('\t- [ ] wzrok')).toEqual({ name: 'wzrok', level: 0, bonus: undefined, goal: undefined });
+		expect(parseExerciseLine('- [x] wzrok')?.level).toBe(10);
+	});
+
+	it('ignores non-task bullets', () => {
+		expect(parseExerciseLine('\t\t\t- podciąganie 5,8,8')).toBeNull();
+	});
+});
+
+describe('parseWeeklyExercises', () => {
+	it('collects tasks per weekly heading', () => {
+		const weeks = parseWeeklyExercises(weeklyInput);
+		expect(weeks.map((w) => [w.date, w.exercises.map((e) => [e.name, e.level])])).toEqual([
+			['2026-10-19', [['stanie na rękach', 10], ['pull / push', 5], ['ćwiczenia od fizjo', 0], ['wzrok', 3]]],
+			['2026-10-12', [['wzrok', 7]]],
+		]);
 	});
 });

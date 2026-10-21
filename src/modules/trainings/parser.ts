@@ -1,4 +1,4 @@
-import { DailyData, TrainingItem, BodyMeasurement } from './types';
+import { DailyData, TrainingItem, BodyMeasurement, WeeklyExercises, ExerciseStatus } from './types';
 import { CategoriesConfig } from '../../shared/parseCategories';
 
 export function parseDailyData(content: string, _config: CategoriesConfig): DailyData[] {
@@ -14,6 +14,14 @@ export function parseDailyData(content: string, _config: CategoriesConfig): Dail
 		}
 		if (!inData) continue;
 		if (line.startsWith('## ')) break;
+
+		// Weekly heading: `### YYYY-MM-DD` — body measurements live here, exercises in parseWeeklyExercises
+		const headingMatch = line.match(/^###\s+(\d{4}-\d{2}-\d{2})\s*$/);
+		if (headingMatch?.[1]) {
+			current = { date: headingMatch[1], body: [], trainings: [] };
+			dailyData.push(current);
+			continue;
+		}
 
 		// Date line: `- YYYY-MM-DD [dayLabel][: inline content]`
 		const dateMatch = line.match(/^-\s+(\d{4}-\d{2}-\d{2})(?:\s+(\S+))?(?::\s*(.*))?$/);
@@ -35,13 +43,13 @@ export function parseDailyData(content: string, _config: CategoriesConfig): Dail
 
 		if (!current) continue;
 
-		const bodyMatch = line.match(/^\s+body:\s*(.+)/);
+		const bodyMatch = line.match(/^\s*(?:-\s+)?body:\s*(.+)/);
 		if (bodyMatch?.[1]) {
 			current.body.push(...parseBodyItems(bodyMatch[1]));
 			continue;
 		}
 
-		const trainMatch = line.match(/^\s+training:\s*(.+)/);
+		const trainMatch = line.match(/^\s*(?:-\s+)?training:\s*(.+)/);
 		if (trainMatch?.[1]) {
 			current.trainings.push(...parseTrainingItems(trainMatch[1]));
 			continue;
@@ -102,4 +110,52 @@ export function parseTrainingItems(str: string): TrainingItem[] {
 			const hours = unit === 'm' ? value / 60 : value;
 			return [{ category: m[1].trim(), hours }];
 		});
+}
+
+/**
+ * Weekly exercise tasks from `### YYYY-MM-DD` blocks: `- [0] name [cel:: goal]` where the status
+ * runs from 0 (not done) to A (100% done); B–F mean 100% plus a bonus ring; plain `[ ]` / `[x]` count as 0 / 100%. Other bullets (notes, logs) are ignored.
+ */
+export function parseWeeklyExercises(content: string): WeeklyExercises[] {
+	const weeks: WeeklyExercises[] = [];
+	let current: WeeklyExercises | null = null;
+	let inData = false;
+
+	for (const line of content.split('\n')) {
+		if (line.startsWith('## Data')) {
+			inData = true;
+			continue;
+		}
+		if (!inData) continue;
+		if (line.startsWith('## ')) break;
+
+		const headingMatch = line.match(/^###\s+(\d{4}-\d{2}-\d{2})\s*$/);
+		if (headingMatch?.[1]) {
+			current = { date: headingMatch[1], exercises: [] };
+			weeks.push(current);
+			continue;
+		}
+		if (!current) continue;
+
+		const exercise = parseExerciseLine(line);
+		if (exercise) current.exercises.push(exercise);
+	}
+
+	return weeks;
+}
+
+export function parseExerciseLine(line: string): ExerciseStatus | null {
+	const m = line.match(/^\s*-\s+\[([0-9a-fA-FxX ])\]\s+(.+?)\s*$/);
+	if (!m?.[1] || !m[2]) return null;
+
+	// default Obsidian statuses: `[ ]` = not done, `[x]` = done
+	const status = m[1] === ' ' ? 0 : m[1].toLowerCase() === 'x' ? 10 : parseInt(m[1], 16);
+	const level = Math.min(status, 10);
+	const bonus = status > 10 ? status - 10 : undefined;
+	const goalMatch = m[2].match(/\[cel::\s*([^\]]*)\]\s*(.*)$/);
+	const name = (goalMatch ? m[2].slice(0, goalMatch.index) : m[2]).trim();
+	if (!name) return null;
+
+	const goal = goalMatch ? `${goalMatch[1]?.trim() ?? ''} ${goalMatch[2]?.trim() ?? ''}`.trim() : undefined;
+	return { name, level, bonus, goal: goal || undefined };
 }

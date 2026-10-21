@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { aggregateTrainings, monthBands, weekStart } from './aggregator';
+import { aggregateTrainings, aggregateExercises, monthBands, weekStart } from './aggregator';
 import { DailyData } from './types';
 import { CategoriesConfig } from '../../shared/parseCategories';
 
@@ -68,5 +68,18 @@ describe('weekStart', () => {
 
 	it('handles year boundary (Thursday Jan 1 2026 → Monday Dec 29 2025)', () => {
 		expect(weekStart('2026-01-01')).toBe('2025-12-29');
+	});
+});
+
+describe('aggregateExercises', () => {
+	it('builds an exercise × week grid', () => {
+		const grid = aggregateExercises([
+			{ date: '2026-10-21', exercises: [{ name: 'wzrok', level: 3 }] },
+			{ date: '2026-10-12', exercises: [{ name: 'wzrok', level: 7 }, { name: 'brzuch', level: 10 }] },
+		]);
+		expect(grid.weeks).toEqual(['2026-10-12', '2026-10-19']);
+		expect(grid.exercises).toEqual(['wzrok', 'brzuch']);
+		expect(grid.cells['wzrok']?.['2026-10-19']?.level).toBe(3);
+		expect(grid.cells['brzuch']?.['2026-10-19']).toBeUndefined();
 	});
 });

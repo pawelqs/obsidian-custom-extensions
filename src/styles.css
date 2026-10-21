@@ -141,3 +141,63 @@ button.cext-tab-active {
 	line-height: 1;
 	text-shadow: 0 0 2px #fff, 0 0 2px #fff;
 }
+
+.cext-exercises {
+	overflow-x: auto;
+}
+
+.cext-exercises-table th,
+.cext-exercises-table td {
+	text-align: center;
+	padding: 2px 6px;
+}
+
+.cext-exercises-table th.cext-exercises-name {
+	text-align: left;
+	white-space: nowrap;
+}
+
+/* Task status pie: 0–9 = fill level, A = 100%, B–F = 100% + gold ring.
+   Shared by task checkboxes in notes and the cext-trainings-table cells. */
+.cext-pie,
+.task-list-item-checkbox:is([data-task="0"],[data-task="1"],[data-task="2"],[data-task="3"],
+[data-task="4"],[data-task="5"],[data-task="6"],[data-task="7"],[data-task="8"],[data-task="9"],
+[data-task="A"],[data-task="B"],[data-task="C"],[data-task="D"],[data-task="E"],[data-task="F"]) {
+	border-radius: 50%;
+	--fill: color-mix(in oklch, #81b29a calc(var(--t, 10) * 10%), #e07a5f);
+	border: 1.5px solid var(--fill) !important;
+	background: conic-gradient(var(--fill) var(--p, 0%), transparent 0) !important;
+	box-shadow: 0 0 0 var(--ring, 0px) #d4a017;
+}
+
+.task-list-item-checkbox[data-task]:is([data-task="0"],[data-task="1"],[data-task="2"],
+[data-task="3"],[data-task="4"],[data-task="5"],[data-task="6"],[data-task="7"],[data-task="8"],
+[data-task="9"],[data-task="A"],[data-task="B"],[data-task="C"],[data-task="D"],[data-task="E"],
+[data-task="F"])::after {
+	content: none !important;
+}
+
+.cext-pie {
+	display: block;
+	box-sizing: border-box;
+	width: 18px;
+	height: 18px;
+	margin: 0 auto;
+}
+
+[data-task="1"] { --p: 10%; --t: 1; }
+[data-task="2"] { --p: 20%; --t: 2; }
+[data-task="3"] { --p: 30%; --t: 3; }
+[data-task="4"] { --p: 40%; --t: 4; }
+[data-task="5"] { --p: 50%; --t: 5; }
+[data-task="6"] { --p: 60%; --t: 6; }
+[data-task="7"] { --p: 70%; --t: 7; }
+[data-task="8"] { --p: 80%; --t: 8; }
+[data-task="9"] { --p: 90%; --t: 9; }
+[data-task="0"] { --t: 0; }
+:is([data-task="A"],[data-task="B"],[data-task="C"],[data-task="D"],[data-task="E"],[data-task="F"]) { --p: 100%; }
+[data-task="B"] { --ring: 1px; }
+[data-task="C"] { --ring: 2px; }
+[data-task="D"] { --ring: 3px; }
+[data-task="E"] { --ring: 4px; }
+[data-task="F"] { --ring: 5px; }

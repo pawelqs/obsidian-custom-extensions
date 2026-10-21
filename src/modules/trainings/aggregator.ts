@@ -2,13 +2,25 @@
  * Pure data transforms: domain `DailyData[]` → chart-ready aggregates.
  * No DOM / Chart.js — safe to unit-test without a canvas.
  */
-import { DailyData } from './types';
+import { DailyData, WeeklyExercises } from './types';
 import { CategoriesConfig } from '../../shared/parseCategories';
 
 export interface TrainingAggregate {
 	weeks: string[];                                              // sorted Monday-of-week dates (YYYY-MM-DD) that have data
 	categories: string[];                                         // config order first, then alphabetical for unknown
 	hoursByWeekCategory: Record<string, Record<string, number>>;  // [week][cat] = sum of hours; missing key = 0
+}
+
+export interface ExerciseCell {
+	level: number;  // 0…10
+	bonus?: number;
+	goal?: string;
+}
+
+export interface ExerciseGrid {
+	weeks: string[];                                          // sorted Monday-of-week dates
+	exercises: string[];                                      // order of first appearance
+	cells: Record<string, Record<string, ExerciseCell>>;      // cells[exercise][week]; missing = not tracked that week
 }
 
 export interface MonthBand {
@@ -60,6 +72,27 @@ export function aggregateBody(dailyData: DailyData[], metrics: string[]): BodyAg
 	].sort();
 
 	return { dates, series };
+}
+
+/** Exercise × week grid; when a week appears twice the later block wins. */
+export function aggregateExercises(weeklyExercises: WeeklyExercises[]): ExerciseGrid {
+	const cells: Record<string, Record<string, ExerciseCell>> = {};
+	const exercises: string[] = [];
+	const weekSet = new Set<string>();
+	const ordered = [...weeklyExercises].sort((a, b) => a.date.localeCompare(b.date));
+	for (const entry of ordered) {
+		if (entry.exercises.length === 0) continue;
+		const week = weekStart(entry.date);
+		weekSet.add(week);
+		for (const ex of entry.exercises) {
+			if (!cells[ex.name]) {
+				cells[ex.name] = {};
+				exercises.push(ex.name);
+			}
+			(cells[ex.name] as Record<string, ExerciseCell>)[week] = { level: ex.level, bonus: ex.bonus, goal: ex.goal };
+		}
+	}
+	return { weeks: [...weekSet].sort(), exercises, cells };
 }
 
 const WEEK_MS = 7 * 86_400_000;

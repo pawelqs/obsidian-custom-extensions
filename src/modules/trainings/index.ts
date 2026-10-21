@@ -1,8 +1,9 @@
 import { App, Plugin, MarkdownPostProcessorContext, MarkdownRenderChild, TFile } from 'obsidian';
-import { parseDailyData } from './parser';
+import { parseDailyData, parseWeeklyExercises } from './parser';
 import { renderTrainingChart, renderBodyChart } from './renderer';
+import { renderExercisesTable } from './exercisesTable';
 import { destroyChart } from '../../shared/chartInstance';
-import { DailyData, TrainingsChunkConfig } from './types';
+import { DailyData, WeeklyExercises, TrainingsChunkConfig } from './types';
 import { parseCategories, CategoriesConfig } from '../../shared/parseCategories';
 import { getElementState, setElementState } from '../../shared/elementState';
 
@@ -16,14 +17,16 @@ export class TrainingsModule {
 			const content = await this.app.vault.cachedRead(file);
 			const config = parseCategories(content);
 			const dailyData = parseDailyData(content, config);
-			return { config, dailyData };
+			const weeklyExercises = parseWeeklyExercises(content);
+			return { config, dailyData, weeklyExercises };
 		};
 
 		type Renderer = (
 			el: HTMLElement,
 			dailyData: DailyData[],
 			config: CategoriesConfig,
-			chunkConfig: TrainingsChunkConfig
+			chunkConfig: TrainingsChunkConfig,
+			weeklyExercises: WeeklyExercises[]
 		) => void;
 
 		const setupRerender = (
@@ -47,7 +50,7 @@ export class TrainingsModule {
 				if (!data) return;
 				el.empty();
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig);
+				renderer(el, data.dailyData, data.config, chunkConfig, data.weeklyExercises);
 			};
 
 			child.registerEvent(this.app.vault.on('modify', onModify));
@@ -58,13 +61,16 @@ export class TrainingsModule {
 				const data = await readAndParse(ctx);
 				if (!data) return;
 				const chunkConfig = parseChunkConfig(source);
-				renderer(el, data.dailyData, data.config, chunkConfig);
+				renderer(el, data.dailyData, data.config, chunkConfig, data.weeklyExercises);
 				setupRerender(el, ctx, source, renderer);
 			});
 		};
 
 		registerBlock('cext-trainings-chart', renderTrainingChart);
 		registerBlock('cext-trainings-body', renderBodyChart);
+		registerBlock('cext-trainings-table', (el, _dailyData, _config, _chunkConfig, weeklyExercises) =>
+			renderExercisesTable(el, weeklyExercises)
+		);
 	}
 }
 

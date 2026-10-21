@@ -24,3 +24,21 @@ height: 300
 - 2026-04-26: body: 70 kg, 18 PBF, training: strength 1h, mobility 30m
 - 2026-04-27: training: cardio 45m
 ````
+
+## Weekly exercises (`cext-trainings-table`)
+Exercises are tracked per week under a `### YYYY-MM-DD` heading in `## Data` (any day of the week; it is bucketed to its Monday). Body measurements go there as `- body: 76 kg`. Tasks are checkbox-style bullets whose status runs from `0` (not done) to `A` (100%, i.e. 10 steps of 10%); plain `[ ]` counts as 0 and `[x]` as 100%; `[cel:: …]` is an optional goal shown in the tooltip. Other bullets (logs, notes, group names) are ignored.
+
+````markdown
+```cext-trainings-table
+```
+
+## Data
+
+### 2026-10-19
+- body: 76 kg
+- ćwiczenia:
+	- [5] pull / push [cel:: 10] serii
+	- [A] brzuch [cel:: 2 razy w tygodniu]
+````
+
+The block renders a table: exercises in rows (order of first appearance), weeks in columns (`DD.MM` of the Monday), and a pie icon in each cell filled to the completion level (coral → sage by level; statuses B–F are 100% with a gold ring of 1–5 px, using the same rules as the plugin-provided `[ ] [0-F]` task-checkbox styling in `src/styles.css`). Weeks where an exercise is not listed stay empty. The old `- YYYY-MM-DD` daily format still works.
