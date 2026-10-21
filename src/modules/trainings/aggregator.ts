@@ -2,97 +2,115 @@
  * Pure data transforms: domain `DailyData[]` → chart-ready aggregates.
  * No DOM / Chart.js — safe to unit-test without a canvas.
  */
-import { DailyData, WeeklyExercises } from './types';
-import { CategoriesConfig } from '../../shared/parseCategories';
+import { DailyData, WeeklyExercises } from "./types";
+import { CategoriesConfig } from "../../shared/parseCategories";
 
 export interface TrainingAggregate {
-	weeks: string[];                                              // sorted Monday-of-week dates (YYYY-MM-DD) that have data
-	categories: string[];                                         // config order first, then alphabetical for unknown
-	hoursByWeekCategory: Record<string, Record<string, number>>;  // [week][cat] = sum of hours; missing key = 0
+  weeks: string[]; // sorted Monday-of-week dates (YYYY-MM-DD) that have data
+  categories: string[]; // config order first, then alphabetical for unknown
+  hoursByWeekCategory: Record<string, Record<string, number>>; // [week][cat] = sum of hours; missing key = 0
 }
 
 export interface ExerciseCell {
-	level: number;  // 0…10
-	bonus?: number;
-	goal?: string;
+  level: number; // 0…10
+  bonus?: number;
+  goal?: string;
 }
 
 export interface ExerciseGrid {
-	weeks: string[];                                          // sorted Monday-of-week dates
-	exercises: string[];                                      // order of first appearance
-	cells: Record<string, Record<string, ExerciseCell>>;      // cells[exercise][week]; missing = not tracked that week
+  weeks: string[]; // sorted Monday-of-week dates
+  exercises: string[]; // order of first appearance
+  cells: Record<string, Record<string, ExerciseCell>>; // cells[exercise][week]; missing = not tracked that week
 }
 
 export interface MonthBand {
-	key: string;     // YYYY-MM
-	startMs: number; // first millisecond of the month (clamped to the chart's first week)
-	endMs: number;   // first millisecond of the next month (clamped to the end of the last week)
+  key: string; // YYYY-MM
+  startMs: number; // first millisecond of the month (clamped to the chart's first week)
+  endMs: number; // first millisecond of the next month (clamped to the end of the last week)
 }
 
 export interface BodyAggregate {
-	dates: string[];                                  // sorted union of measurement dates, x-axis labels
-	series: Record<string, Map<string, number>>;      // series[metric].get(date) = value; missing = gap
+  dates: string[]; // sorted union of measurement dates, x-axis labels
+  series: Record<string, Map<string, number>>; // series[metric].get(date) = value; missing = gap
 }
 
 /** Aggregate training hours by week and category. */
-export function aggregateTrainings(dailyData: DailyData[], config: CategoriesConfig): TrainingAggregate {
-	const hoursByWeekCategory: Record<string, Record<string, number>> = {};
-	for (const day of dailyData) {
-		const w = weekStart(day.date);
-		if (!hoursByWeekCategory[w]) hoursByWeekCategory[w] = {};
-		const bucket = hoursByWeekCategory[w];
-		for (const t of day.trainings) {
-			bucket[t.category] = (bucket[t.category] || 0) + t.hours;
-		}
-	}
+export function aggregateTrainings(
+  dailyData: DailyData[],
+  config: CategoriesConfig,
+): TrainingAggregate {
+  const hoursByWeekCategory: Record<string, Record<string, number>> = {};
+  for (const day of dailyData) {
+    const w = weekStart(day.date);
+    if (!hoursByWeekCategory[w]) hoursByWeekCategory[w] = {};
+    const bucket = hoursByWeekCategory[w];
+    for (const t of day.trainings) {
+      bucket[t.category] = (bucket[t.category] || 0) + t.hours;
+    }
+  }
 
-	const weeks = Object.keys(hoursByWeekCategory).sort();
-	const catOrder = Object.keys(config.colorsMap);
-	const usedCategories = new Set(weeks.flatMap((w) => Object.keys(hoursByWeekCategory[w] || {})));
-	const knownCategories = catOrder.filter((c) => usedCategories.has(c));
-	const unknownCategories = [...usedCategories].filter((c) => !catOrder.includes(c)).sort();
-	const categories = [...knownCategories, ...unknownCategories];
+  const weeks = Object.keys(hoursByWeekCategory).sort();
+  const catOrder = Object.keys(config.colorsMap);
+  const usedCategories = new Set(
+    weeks.flatMap((w) => Object.keys(hoursByWeekCategory[w] || {})),
+  );
+  const knownCategories = catOrder.filter((c) => usedCategories.has(c));
+  const unknownCategories = [...usedCategories]
+    .filter((c) => !catOrder.includes(c))
+    .sort();
+  const categories = [...knownCategories, ...unknownCategories];
 
-	return { weeks, categories, hoursByWeekCategory };
+  return { weeks, categories, hoursByWeekCategory };
 }
 
 /** Collect body measurements per metric, indexed by date. */
-export function aggregateBody(dailyData: DailyData[], metrics: string[]): BodyAggregate {
-	const series: Record<string, Map<string, number>> = Object.fromEntries(
-		metrics.map((m) => [m, new Map<string, number>()])
-	);
-	for (const day of dailyData) {
-		for (const b of day.body) {
-			series[b.metric]?.set(day.date, b.value);
-		}
-	}
+export function aggregateBody(
+  dailyData: DailyData[],
+  metrics: string[],
+): BodyAggregate {
+  const series: Record<string, Map<string, number>> = Object.fromEntries(
+    metrics.map((m) => [m, new Map<string, number>()]),
+  );
+  for (const day of dailyData) {
+    for (const b of day.body) {
+      series[b.metric]?.set(day.date, b.value);
+    }
+  }
 
-	const dates = [
-		...new Set(metrics.flatMap((m) => Array.from(series[m]?.keys() ?? []))),
-	].sort();
+  const dates = [
+    ...new Set(metrics.flatMap((m) => Array.from(series[m]?.keys() ?? []))),
+  ].sort();
 
-	return { dates, series };
+  return { dates, series };
 }
 
 /** Exercise × week grid; when a week appears twice the later block wins. */
-export function aggregateExercises(weeklyExercises: WeeklyExercises[]): ExerciseGrid {
-	const cells: Record<string, Record<string, ExerciseCell>> = {};
-	const exercises: string[] = [];
-	const weekSet = new Set<string>();
-	const ordered = [...weeklyExercises].sort((a, b) => a.date.localeCompare(b.date));
-	for (const entry of ordered) {
-		if (entry.exercises.length === 0) continue;
-		const week = weekStart(entry.date);
-		weekSet.add(week);
-		for (const ex of entry.exercises) {
-			if (!cells[ex.name]) {
-				cells[ex.name] = {};
-				exercises.push(ex.name);
-			}
-			(cells[ex.name] as Record<string, ExerciseCell>)[week] = { level: ex.level, bonus: ex.bonus, goal: ex.goal };
-		}
-	}
-	return { weeks: [...weekSet].sort(), exercises, cells };
+export function aggregateExercises(
+  weeklyExercises: WeeklyExercises[],
+): ExerciseGrid {
+  const cells: Record<string, Record<string, ExerciseCell>> = {};
+  const exercises: string[] = [];
+  const weekSet = new Set<string>();
+  const ordered = [...weeklyExercises].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+  for (const entry of ordered) {
+    if (entry.exercises.length === 0) continue;
+    const week = weekStart(entry.date);
+    weekSet.add(week);
+    for (const ex of entry.exercises) {
+      if (!cells[ex.name]) {
+        cells[ex.name] = {};
+        exercises.push(ex.name);
+      }
+      (cells[ex.name] as Record<string, ExerciseCell>)[week] = {
+        level: ex.level,
+        bonus: ex.bonus,
+        goal: ex.goal,
+      };
+    }
+  }
+  return { weeks: [...weekSet].sort(), exercises, cells };
 }
 
 const WEEK_MS = 7 * 86_400_000;
@@ -103,37 +121,41 @@ const WEEK_MS = 7 * 86_400_000;
  * straddling two months is naturally cut at the boundary when the renderer maps ms → pixel.
  */
 export function monthBands(weeks: string[]): MonthBand[] {
-	const first = weeks[0];
-	const last = weeks[weeks.length - 1];
-	if (first === undefined || last === undefined) return [];
-	const rangeEnd = utcMs(last) + WEEK_MS;  // exclusive end: the Monday after the last week
-	const bands: MonthBand[] = [];
-	for (let cursor = utcMs(first); cursor < rangeEnd; ) {
-		const next = firstOfNextMonthMs(cursor);
-		bands.push({ key: monthKey(cursor), startMs: cursor, endMs: Math.min(next, rangeEnd) });
-		cursor = next;
-	}
-	return bands;
+  const first = weeks[0];
+  const last = weeks[weeks.length - 1];
+  if (first === undefined || last === undefined) return [];
+  const rangeEnd = utcMs(last) + WEEK_MS; // exclusive end: the Monday after the last week
+  const bands: MonthBand[] = [];
+  for (let cursor = utcMs(first); cursor < rangeEnd;) {
+    const next = firstOfNextMonthMs(cursor);
+    bands.push({
+      key: monthKey(cursor),
+      startMs: cursor,
+      endMs: Math.min(next, rangeEnd),
+    });
+    cursor = next;
+  }
+  return bands;
 }
 
 function firstOfNextMonthMs(ms: number): number {
-	const d = new Date(ms);
-	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  const d = new Date(ms);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
 }
 
 function monthKey(ms: number): string {
-	const d = new Date(ms);
-	return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function utcMs(date: string): number {
-	return Date.parse(date + 'T00:00:00Z');
+  return Date.parse(date + "T00:00:00Z");
 }
 
 export function weekStart(dateStr: string): string {
-	const d = new Date(dateStr + 'T00:00:00Z');
-	const dow = d.getUTCDay();
-	const diff = dow === 0 ? -6 : 1 - dow;
-	d.setUTCDate(d.getUTCDate() + diff);
-	return d.toISOString().slice(0, 10);
+  const d = new Date(dateStr + "T00:00:00Z");
+  const dow = d.getUTCDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
 }

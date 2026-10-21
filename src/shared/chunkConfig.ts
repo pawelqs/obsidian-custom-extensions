@@ -1,3 +1,3 @@
 export interface ChunkConfig {
-	height: number;
+  height: number;
 }

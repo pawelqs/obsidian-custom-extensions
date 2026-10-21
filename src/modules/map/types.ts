@@ -1,34 +1,34 @@
 export interface MapChunkConfig {
-	height: number;
-	implicitCategories: boolean; // false → categories come only from explicit cat:/#tag, not from headings
+  height: number;
+  implicitCategories: boolean; // false → categories come only from explicit cat:/#tag, not from headings
 }
 
 // One point's membership in a route: its name plus position (`#<n>`) in the path.
 // A route reference without a `#<n>` number can't be ordered, so it isn't stored.
 export interface RouteMembership {
-	name: string;
-	seq: number;
+  name: string;
+  seq: number;
 }
 
 export interface MapLocation {
-	name: string;
-	lat: number;
-	lon: number;
-	category: string | null;
-	routes: RouteMembership[]; // a point may belong to several routes
+  name: string;
+  lat: number;
+  lon: number;
+  category: string | null;
+  routes: RouteMembership[]; // a point may belong to several routes
 }
 
 // A named path connecting routed locations, ordered ascending by their seq number.
 export interface MapRoute {
-	name: string;
-	points: MapLocation[];
+  name: string;
+  points: MapLocation[];
 }
 
 // Contract for the click-to-recenter event shared between the click delegation
 // (dispatcher) and the map's fly handler (listener).
-export const MAP_FLY_EVENT = 'cext-map-fly';
+export const MAP_FLY_EVENT = "cext-map-fly";
 
 export interface MapFlyDetail {
-	lat: number;
-	lon: number;
+  lat: number;
+  lon: number;
 }
