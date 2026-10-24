@@ -41,4 +41,4 @@ Exercises are tracked per week under a `### YYYY-MM-DD` heading in `## Data` (an
 	- [A] brzuch [cel:: 2 razy w tygodniu]
 ````
 
-The block renders a table: exercises in rows (order of first appearance), weeks in columns (`DD.MM` of the Monday), and a pie icon in each cell filled to the completion level (coral → sage by level; statuses B–F are 100% with a gold ring of 1–5 px, using the same rules as the plugin-provided `[ ] [0-F]` task-checkbox styling in `src/styles.css`). Weeks where an exercise is not listed stay empty. The old `- YYYY-MM-DD` daily format still works.
+The block renders a table: exercises in rows (order of first appearance in the file, top to bottom), weeks in columns (`DD.MM` of the Monday), and a pie icon in each cell filled to the completion level (coral → sage by level; statuses B–F are 100% with a gold ring of 1–5 px, using the same rules as the plugin-provided `[ ] [0-F]` task-checkbox styling in `src/styles.css`). Weeks where an exercise is not listed stay empty. The old `- YYYY-MM-DD` daily format still works.

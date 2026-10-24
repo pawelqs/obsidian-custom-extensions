@@ -19,7 +19,7 @@ export interface ExerciseCell {
 
 export interface ExerciseGrid {
   weeks: string[]; // sorted Monday-of-week dates
-  exercises: string[]; // order of first appearance
+  exercises: string[]; // order of first appearance in the file (top to bottom)
   cells: Record<string, Record<string, ExerciseCell>>; // cells[exercise][week]; missing = not tracked that week
 }
 
@@ -89,7 +89,9 @@ export function aggregateExercises(
   weeklyExercises: WeeklyExercises[],
 ): ExerciseGrid {
   const cells: Record<string, Record<string, ExerciseCell>> = {};
-  const exercises: string[] = [];
+  const exercises = [
+    ...new Set(weeklyExercises.flatMap((w) => w.exercises.map((e) => e.name))),
+  ];
   const weekSet = new Set<string>();
   const ordered = [...weeklyExercises].sort((a, b) =>
     a.date.localeCompare(b.date),
@@ -99,10 +101,7 @@ export function aggregateExercises(
     const week = weekStart(entry.date);
     weekSet.add(week);
     for (const ex of entry.exercises) {
-      if (!cells[ex.name]) {
-        cells[ex.name] = {};
-        exercises.push(ex.name);
-      }
+      if (!cells[ex.name]) cells[ex.name] = {};
       (cells[ex.name] as Record<string, ExerciseCell>)[week] = {
         level: ex.level,
         bonus: ex.bonus,
