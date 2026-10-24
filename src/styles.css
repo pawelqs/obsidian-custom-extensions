@@ -159,22 +159,27 @@ button.cext-tab-active {
 
 /* Task status pie: 0–9 = fill level, A = 100%, B–F = 100% + gold ring.
    Shared by task checkboxes in notes and the cext-trainings-table cells. */
+/* Reading view puts data-task on the <li>, the editor puts it on the <input>. */
 .cext-pie,
-.task-list-item-checkbox:is([data-task="0"],[data-task="1"],[data-task="2"],[data-task="3"],
-[data-task="4"],[data-task="5"],[data-task="6"],[data-task="7"],[data-task="8"],[data-task="9"],
-[data-task="A"],[data-task="B"],[data-task="C"],[data-task="D"],[data-task="E"],[data-task="F"]) {
-	border-radius: 50%;
-	--fill: color-mix(in oklch, #81b29a calc(var(--t, 10) * 10%), #e07a5f);
-	border: 1.5px solid var(--fill) !important;
-	background: conic-gradient(var(--fill) var(--p, 0%), transparent 0) !important;
-	box-shadow: 0 0 0 var(--ring, 0px) #d4a017;
-}
+:is(li, .task-list-item-checkbox):is(
+		[data-task="0"],[data-task="1"],[data-task="2"],[data-task="3"],
+		[data-task="4"],[data-task="5"],[data-task="6"],[data-task="7"],
+		[data-task="8"],[data-task="9"],[data-task="A"],[data-task="B"],
+		[data-task="C"],[data-task="D"],[data-task="E"],[data-task="F"]) {
+	&.cext-pie,
+	&.task-list-item-checkbox,
+	& > .task-list-item-checkbox,
+	& > p > .task-list-item-checkbox {
+		border-radius: 50%;
+		--fill: color-mix(in oklch, #81b29a calc(var(--t, 10) * 10%), #e07a5f);
+		border: 1.5px solid var(--fill) !important;
+		background: conic-gradient(var(--fill) var(--p, 0%), transparent 0) !important;
+		box-shadow: 0 0 0 var(--ring, 0px) #d4a017;
 
-.task-list-item-checkbox[data-task]:is([data-task="0"],[data-task="1"],[data-task="2"],
-[data-task="3"],[data-task="4"],[data-task="5"],[data-task="6"],[data-task="7"],[data-task="8"],
-[data-task="9"],[data-task="A"],[data-task="B"],[data-task="C"],[data-task="D"],[data-task="E"],
-[data-task="F"])::after {
-	content: none !important;
+		&::after {
+			content: none !important;
+		}
+	}
 }
 
 .cext-pie {
